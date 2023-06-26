@@ -1,26 +1,37 @@
 package config
 
 import (
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"fmt"
 )
 
 var (
-	db *gorm.DB
+	DB *Database
 )
 
-func connectDB() {
-	dsn := "host=localhost user=israel password=password dbname=account_ledger port=9920 sslmode=disable TimeZone=Asia/Shanghai"
-	dbInstance, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func InitDatabaseConnection() {
+	fmt.Print("Creating DATABAse connection...")
+	dbConn, err := NewDBConnection()
 
 	if err != nil {
 		panic(err)
 	}
 
-	db = dbInstance
+	DB = dbConn
 
 }
 
-func getDB() *gorm.DB {
-	return db
-}
+// func ConnectDB() {
+// 	dsn := "host=localhost user=postgres password=password dbname=accounting_ledger port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+// 	dbInstance, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	db = dbInstance
+
+// }
+
+// func GetDB() *gorm.DB {
+// 	return db
+// }
