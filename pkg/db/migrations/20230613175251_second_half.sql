@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS journal_entries(
     amount FLOAT NOT NULL,
     block_id UUID NOT NULL,
     transaction_id UUID NOT NULL,
+    owner_id UUID NULL,
+    memo TEXT NULL,
+    account_number TEXT NULL,
+    organization_id UUID NULL,
     PRIMARY KEY (id)
 );
 

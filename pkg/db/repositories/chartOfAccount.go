@@ -17,6 +17,9 @@ type ChartOfAccountRepository struct {
 type IChartOfAccount interface {
 	Create(name string, accountNumber string, accountType string, description string) (*model.ChartOfAccount, error)
 	FindById(id string) (*model.ChartOfAccount, error)
+	FindByName(accountName string) (*model.ChartOfAccount, error)
+	FindByAccountNumber(accountName string) (*model.ChartOfAccount, error)
+	FindAll() ([]*model.ChartOfAccount, error)
 }
 
 // type DAO interface {
@@ -56,6 +59,51 @@ func (repo *ChartOfAccountRepository) FindById(id string) (*model.ChartOfAccount
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 
 	data, err := chartOfAccount.Where(dbInstance.ChartOfAccount.ID.Eq(id)).First()
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.New("unable to retrieve item")
+	}
+
+	return data, nil
+}
+
+func (repo *ChartOfAccountRepository) FindByName(accountName string) (*model.ChartOfAccount, error) {
+	var dbInstance = config.DbInstance().GetDBQuery()
+	ctx := context.Background()
+	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
+
+	data, err := chartOfAccount.Where(dbInstance.ChartOfAccount.Name.Eq(accountName)).First()
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.New("unable to retrieve item")
+	}
+
+	return data, nil
+}
+
+func (repo *ChartOfAccountRepository) FindByAccountNumber(accountNumber string) (*model.ChartOfAccount, error) {
+	var dbInstance = config.DbInstance().GetDBQuery()
+	ctx := context.Background()
+	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
+
+	data, err := chartOfAccount.Where(dbInstance.ChartOfAccount.AccountNumber.Eq(accountNumber)).First()
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.New("unable to retrieve item")
+	}
+
+	return data, nil
+}
+
+func (repo *ChartOfAccountRepository) FindAll() ([]*model.ChartOfAccount, error) {
+	var dbInstance = config.DbInstance().GetDBQuery()
+	ctx := context.Background()
+	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
+
+	data, err := chartOfAccount.Find()
 
 	if err != nil {
 		fmt.Println(err)

@@ -13,7 +13,7 @@ func ErrorResponseWithData(c *gin.Context, code int, data interface{}) {
 
 func ErrorResponseWithMessage(c *gin.Context, code int, message string) {
 	c.JSON(code, gin.H{
-		"status":  "success",
+		"status":  "failed",
 		"message": message,
 	})
 }

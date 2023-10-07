@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/services"
 	"github.com/israel-duff/ledger-system/pkg/types"
 	httpUtil "github.com/israel-duff/ledger-system/pkg/utils/httpUtil"
@@ -20,8 +21,8 @@ type CreateCoaAccountResponse struct {
 }
 
 func CreateAccount(c *gin.Context) {
-	coaService := services.NewCoaService()
-
+	coaRepo := repositories.NewChartOfAccountRepository()
+	coaService := services.NewCoaService(coaRepo)
 	var payload CreateCoaAccountPayload
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -41,5 +42,15 @@ func CreateAccount(c *gin.Context) {
 }
 
 func ListAccounts(c *gin.Context) {
-	httpUtil.SuccessResponseWithMessage(c, http.StatusCreated, "No Accounts Yet")
+	coaRepo := repositories.NewChartOfAccountRepository()
+	coaService := services.NewCoaService(coaRepo)
+
+	accounts, err := coaService.ListAll()
+
+	if err != nil {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "Unable to List accounts!!!")
+		return
+	}
+
+	httpUtil.SuccessResponseWithData(c, http.StatusCreated, accounts)
 }

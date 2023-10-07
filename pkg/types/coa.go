@@ -9,3 +9,9 @@ const (
 	REVENUE   LedgerAccountType = "revenue"
 	EXPENSIS  LedgerAccountType = "expensis"
 )
+
+type ChartOfAccount struct {
+	Id            string
+	AccountNumber string
+	CreatedAt     string
+}

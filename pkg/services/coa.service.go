@@ -9,24 +9,85 @@ import (
 )
 
 type CoaService struct {
+	CoaRepository repositories.IChartOfAccount
 }
 
-func NewCoaService() *CoaService {
-	return &CoaService{}
+type ICoaService interface {
+	CreateAccount(accountType types.LedgerAccountType, name string, description string) (id string, accountNumber string)
+	FindByName(accountName string) (*types.ChartOfAccount, error)
+	FindByAccountNumber(accountNumber string)
+	ListAll() ([]*types.ChartOfAccount, error)
+}
+
+func NewCoaService(CoaRepository repositories.IChartOfAccount) *CoaService {
+	return &CoaService{
+		CoaRepository: CoaRepository,
+	}
 }
 
 func (coaService *CoaService) CreateAccount(accountType types.LedgerAccountType, name string, description string) (id string, accountNumber string) {
 	accountNum := generateAccountNumber(accountType)
 
-	coaRepo := repositories.NewChartOfAccountRepository()
+	// coaRepo := repositories.NewChartOfAccountRepository()
 
-	account, err := coaRepo.Create(name, accountNum, string(accountType), description)
+	account, err := coaService.CoaRepository.Create(name, accountNum, string(accountType), description)
 
 	if err != nil {
 		return "", ""
 	}
 
 	return account.ID, account.AccountNumber
+
+}
+
+func (coaService *CoaService) FindByName(accountName string) (*types.ChartOfAccount, error) {
+	coaAccount, err := coaService.CoaRepository.FindByName(accountName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ChartOfAccount{
+		Id:            coaAccount.ID,
+		AccountNumber: coaAccount.AccountNumber,
+		CreatedAt:     coaAccount.CreatedAt.String(),
+	}, nil
+
+}
+
+func (coaService *CoaService) FindByAccountNumber(accountNumber string) (*types.ChartOfAccount, error) {
+	coaAccount, err := coaService.CoaRepository.FindByAccountNumber(accountNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ChartOfAccount{
+		Id:            coaAccount.ID,
+		AccountNumber: coaAccount.AccountNumber,
+		CreatedAt:     coaAccount.CreatedAt.String(),
+	}, nil
+
+}
+
+func (coaService *CoaService) ListAll() ([]*types.ChartOfAccount, error) {
+	coaAccounts, err := coaService.CoaRepository.FindAll()
+
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*types.ChartOfAccount, len(coaAccounts))
+
+	for index, acct := range coaAccounts {
+		accounts[index] = &types.ChartOfAccount{
+			Id:            acct.ID,
+			AccountNumber: acct.AccountNumber,
+			CreatedAt:     acct.CreatedAt.String(),
+		}
+	}
+
+	return accounts, nil
 
 }
 

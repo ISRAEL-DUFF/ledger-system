@@ -36,6 +36,10 @@ func newJournalEntry(db *gorm.DB, opts ...gen.DOOption) journalEntry {
 	_journalEntry.Amount = field.NewFloat64(tableName, "amount")
 	_journalEntry.BlockID = field.NewString(tableName, "block_id")
 	_journalEntry.TransactionID = field.NewString(tableName, "transaction_id")
+	_journalEntry.OwnerID = field.NewString(tableName, "owner_id")
+	_journalEntry.Memo = field.NewString(tableName, "memo")
+	_journalEntry.AccountNumber = field.NewString(tableName, "account_number")
+	_journalEntry.OrganizationID = field.NewString(tableName, "organization_id")
 
 	_journalEntry.fillFieldMap()
 
@@ -45,16 +49,20 @@ func newJournalEntry(db *gorm.DB, opts ...gen.DOOption) journalEntry {
 type journalEntry struct {
 	journalEntryDo journalEntryDo
 
-	ALL           field.Asterisk
-	ID            field.String
-	CreatedAt     field.Time
-	UpdatedAt     field.Time
-	DeletedAt     field.Field
-	Name          field.String
-	Type          field.String
-	Amount        field.Float64
-	BlockID       field.String
-	TransactionID field.String
+	ALL            field.Asterisk
+	ID             field.String
+	CreatedAt      field.Time
+	UpdatedAt      field.Time
+	DeletedAt      field.Field
+	Name           field.String
+	Type           field.String
+	Amount         field.Float64
+	BlockID        field.String
+	TransactionID  field.String
+	OwnerID        field.String
+	Memo           field.String
+	AccountNumber  field.String
+	OrganizationID field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -80,6 +88,10 @@ func (j *journalEntry) updateTableName(table string) *journalEntry {
 	j.Amount = field.NewFloat64(table, "amount")
 	j.BlockID = field.NewString(table, "block_id")
 	j.TransactionID = field.NewString(table, "transaction_id")
+	j.OwnerID = field.NewString(table, "owner_id")
+	j.Memo = field.NewString(table, "memo")
+	j.AccountNumber = field.NewString(table, "account_number")
+	j.OrganizationID = field.NewString(table, "organization_id")
 
 	j.fillFieldMap()
 
@@ -108,7 +120,7 @@ func (j *journalEntry) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (j *journalEntry) fillFieldMap() {
-	j.fieldMap = make(map[string]field.Expr, 9)
+	j.fieldMap = make(map[string]field.Expr, 13)
 	j.fieldMap["id"] = j.ID
 	j.fieldMap["created_at"] = j.CreatedAt
 	j.fieldMap["updated_at"] = j.UpdatedAt
@@ -118,6 +130,10 @@ func (j *journalEntry) fillFieldMap() {
 	j.fieldMap["amount"] = j.Amount
 	j.fieldMap["block_id"] = j.BlockID
 	j.fieldMap["transaction_id"] = j.TransactionID
+	j.fieldMap["owner_id"] = j.OwnerID
+	j.fieldMap["memo"] = j.Memo
+	j.fieldMap["account_number"] = j.AccountNumber
+	j.fieldMap["organization_id"] = j.OrganizationID
 }
 
 func (j journalEntry) clone(db *gorm.DB) journalEntry {

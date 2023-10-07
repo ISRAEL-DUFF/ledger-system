@@ -14,15 +14,19 @@ const TableNameJournalEntry = "journal_entries"
 
 // JournalEntry mapped from table <journal_entries>
 type JournalEntry struct {
-	ID            string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
-	CreatedAt     time.Time      `gorm:"column:created_at;not null;default:now()" json:"created_at"`
-	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	Name          string         `gorm:"column:name;not null" json:"name"`
-	Type          string         `gorm:"column:type;not null" json:"type"`
-	Amount        float64        `gorm:"column:amount;not null" json:"amount"`
-	BlockID       string         `gorm:"column:block_id;not null" json:"block_id"`
-	TransactionID string         `gorm:"column:transaction_id;not null" json:"transaction_id"`
+	ID             string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
+	CreatedAt      time.Time      `gorm:"column:created_at;not null;default:now()" json:"created_at"`
+	UpdatedAt      time.Time      `gorm:"column:updated_at" json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	Name           string         `gorm:"column:name;not null" json:"name"`
+	Type           string         `gorm:"column:type;not null" json:"type"`
+	Amount         float64        `gorm:"column:amount;not null" json:"amount"`
+	BlockID        string         `gorm:"column:block_id;not null" json:"block_id"`
+	TransactionID  string         `gorm:"column:transaction_id;not null" json:"transaction_id"`
+	OwnerID        string         `gorm:"column:owner_id" json:"owner_id"`
+	Memo           string         `gorm:"column:memo" json:"memo"`
+	AccountNumber  string         `gorm:"column:account_number" json:"account_number"`
+	OrganizationID string         `gorm:"column:organization_id" json:"organization_id"`
 }
 
 // TableName JournalEntry's table name
