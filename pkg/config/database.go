@@ -8,10 +8,22 @@ import (
 
 type Database struct {
 	connection *gorm.DB
+	dbQuery    *dao.Query
 }
+
+// global variable for the connection instance
+var connectionInstance *Database
 
 func (database *Database) GetDBConnection() *gorm.DB {
 	return database.connection
+}
+
+func (database *Database) GetDBQuery() *dao.Query {
+	return database.dbQuery
+}
+
+func DbInstance() *Database {
+	return connectionInstance
 }
 
 func NewDBConnection() (*Database, error) {
@@ -24,10 +36,13 @@ func NewDBConnection() (*Database, error) {
 		return &Database{}, err
 	}
 
-	dao.Use(dbInstance)
+	dbQuery := dao.Use(dbInstance)
 
-	return &Database{
+	connectionInstance = &Database{
 		connection: dbInstance,
-	}, nil
+		dbQuery:    dbQuery,
+	}
+
+	return connectionInstance, nil
 
 }

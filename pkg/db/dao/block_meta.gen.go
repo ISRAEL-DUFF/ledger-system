@@ -94,6 +94,8 @@ func (b blockMetum) TableName() string { return b.blockMetumDo.TableName() }
 
 func (b blockMetum) Alias() string { return b.blockMetumDo.Alias() }
 
+func (b blockMetum) Columns(cols ...field.Expr) gen.Columns { return b.blockMetumDo.Columns(cols...) }
+
 func (b *blockMetum) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := b.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -170,10 +172,6 @@ func (b blockMetumDo) Select(conds ...field.Expr) *blockMetumDo {
 
 func (b blockMetumDo) Where(conds ...gen.Condition) *blockMetumDo {
 	return b.withDO(b.DO.Where(conds...))
-}
-
-func (b blockMetumDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *blockMetumDo {
-	return b.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (b blockMetumDo) Order(conds ...field.Expr) *blockMetumDo {

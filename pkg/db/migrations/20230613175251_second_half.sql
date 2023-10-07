@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS ledger_accounts(
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS transactions(
+CREATE TABLE IF NOT EXISTS ledger_transactions(
     id UUID DEFAULT uuid_generate_v4 (),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NULL DEFAULT NULL,
@@ -81,7 +81,7 @@ DROP TABLE IF EXISTS account_blocks;
 DROP TABLE IF EXISTS block_meta;
 DROP TABLE IF EXISTS journal_entries;
 DROP TABLE IF EXISTS ledger_accounts;
-DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS ledger_transactions;
 DROP TYPE IF EXISTS block_status;
 DROP TYPE IF EXISTS ledger_account_status;
 DROP TYPE IF EXISTS transaction_status;

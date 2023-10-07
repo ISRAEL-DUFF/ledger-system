@@ -17,44 +17,44 @@ import (
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:             db,
-		AccountBlock:   newAccountBlock(db, opts...),
-		BlockMetum:     newBlockMetum(db, opts...),
-		ChartOfAccount: newChartOfAccount(db, opts...),
-		GooseDbVersion: newGooseDbVersion(db, opts...),
-		JournalEntry:   newJournalEntry(db, opts...),
-		LedgerAccount:  newLedgerAccount(db, opts...),
-		Transaction:    newTransaction(db, opts...),
-		User:           newUser(db, opts...),
+		db:                db,
+		AccountBlock:      newAccountBlock(db, opts...),
+		BlockMetum:        newBlockMetum(db, opts...),
+		ChartOfAccount:    newChartOfAccount(db, opts...),
+		GooseDbVersion:    newGooseDbVersion(db, opts...),
+		JournalEntry:      newJournalEntry(db, opts...),
+		LedgerAccount:     newLedgerAccount(db, opts...),
+		LedgerTransaction: newLedgerTransaction(db, opts...),
+		User:              newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	AccountBlock   accountBlock
-	BlockMetum     blockMetum
-	ChartOfAccount chartOfAccount
-	GooseDbVersion gooseDbVersion
-	JournalEntry   journalEntry
-	LedgerAccount  ledgerAccount
-	Transaction    transaction
-	User           user
+	AccountBlock      accountBlock
+	BlockMetum        blockMetum
+	ChartOfAccount    chartOfAccount
+	GooseDbVersion    gooseDbVersion
+	JournalEntry      journalEntry
+	LedgerAccount     ledgerAccount
+	LedgerTransaction ledgerTransaction
+	User              user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:             db,
-		AccountBlock:   q.AccountBlock.clone(db),
-		BlockMetum:     q.BlockMetum.clone(db),
-		ChartOfAccount: q.ChartOfAccount.clone(db),
-		GooseDbVersion: q.GooseDbVersion.clone(db),
-		JournalEntry:   q.JournalEntry.clone(db),
-		LedgerAccount:  q.LedgerAccount.clone(db),
-		Transaction:    q.Transaction.clone(db),
-		User:           q.User.clone(db),
+		db:                db,
+		AccountBlock:      q.AccountBlock.clone(db),
+		BlockMetum:        q.BlockMetum.clone(db),
+		ChartOfAccount:    q.ChartOfAccount.clone(db),
+		GooseDbVersion:    q.GooseDbVersion.clone(db),
+		JournalEntry:      q.JournalEntry.clone(db),
+		LedgerAccount:     q.LedgerAccount.clone(db),
+		LedgerTransaction: q.LedgerTransaction.clone(db),
+		User:              q.User.clone(db),
 	}
 }
 
@@ -68,39 +68,39 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:             db,
-		AccountBlock:   q.AccountBlock.replaceDB(db),
-		BlockMetum:     q.BlockMetum.replaceDB(db),
-		ChartOfAccount: q.ChartOfAccount.replaceDB(db),
-		GooseDbVersion: q.GooseDbVersion.replaceDB(db),
-		JournalEntry:   q.JournalEntry.replaceDB(db),
-		LedgerAccount:  q.LedgerAccount.replaceDB(db),
-		Transaction:    q.Transaction.replaceDB(db),
-		User:           q.User.replaceDB(db),
+		db:                db,
+		AccountBlock:      q.AccountBlock.replaceDB(db),
+		BlockMetum:        q.BlockMetum.replaceDB(db),
+		ChartOfAccount:    q.ChartOfAccount.replaceDB(db),
+		GooseDbVersion:    q.GooseDbVersion.replaceDB(db),
+		JournalEntry:      q.JournalEntry.replaceDB(db),
+		LedgerAccount:     q.LedgerAccount.replaceDB(db),
+		LedgerTransaction: q.LedgerTransaction.replaceDB(db),
+		User:              q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	AccountBlock   *accountBlockDo
-	BlockMetum     *blockMetumDo
-	ChartOfAccount *chartOfAccountDo
-	GooseDbVersion *gooseDbVersionDo
-	JournalEntry   *journalEntryDo
-	LedgerAccount  *ledgerAccountDo
-	Transaction    *transactionDo
-	User           *userDo
+	AccountBlock      *accountBlockDo
+	BlockMetum        *blockMetumDo
+	ChartOfAccount    *chartOfAccountDo
+	GooseDbVersion    *gooseDbVersionDo
+	JournalEntry      *journalEntryDo
+	LedgerAccount     *ledgerAccountDo
+	LedgerTransaction *ledgerTransactionDo
+	User              *userDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		AccountBlock:   q.AccountBlock.WithContext(ctx),
-		BlockMetum:     q.BlockMetum.WithContext(ctx),
-		ChartOfAccount: q.ChartOfAccount.WithContext(ctx),
-		GooseDbVersion: q.GooseDbVersion.WithContext(ctx),
-		JournalEntry:   q.JournalEntry.WithContext(ctx),
-		LedgerAccount:  q.LedgerAccount.WithContext(ctx),
-		Transaction:    q.Transaction.WithContext(ctx),
-		User:           q.User.WithContext(ctx),
+		AccountBlock:      q.AccountBlock.WithContext(ctx),
+		BlockMetum:        q.BlockMetum.WithContext(ctx),
+		ChartOfAccount:    q.ChartOfAccount.WithContext(ctx),
+		GooseDbVersion:    q.GooseDbVersion.WithContext(ctx),
+		JournalEntry:      q.JournalEntry.WithContext(ctx),
+		LedgerAccount:     q.LedgerAccount.WithContext(ctx),
+		LedgerTransaction: q.LedgerTransaction.WithContext(ctx),
+		User:              q.User.WithContext(ctx),
 	}
 }
 

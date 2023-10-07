@@ -94,6 +94,10 @@ func (a accountBlock) TableName() string { return a.accountBlockDo.TableName() }
 
 func (a accountBlock) Alias() string { return a.accountBlockDo.Alias() }
 
+func (a accountBlock) Columns(cols ...field.Expr) gen.Columns {
+	return a.accountBlockDo.Columns(cols...)
+}
+
 func (a *accountBlock) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := a.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -170,10 +174,6 @@ func (a accountBlockDo) Select(conds ...field.Expr) *accountBlockDo {
 
 func (a accountBlockDo) Where(conds ...gen.Condition) *accountBlockDo {
 	return a.withDO(a.DO.Where(conds...))
-}
-
-func (a accountBlockDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *accountBlockDo {
-	return a.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (a accountBlockDo) Order(conds ...field.Expr) *accountBlockDo {

@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	config "github.com/israel-duff/ledger-system/pkg/config"
+	"github.com/israel-duff/ledger-system/pkg/routes"
 
 	// models "github.com/israel-duff/ledger-system/pkg/models"
 	"github.com/israel-duff/ledger-system/pkg/db"
@@ -30,5 +32,15 @@ func main() {
 	}
 
 	db.RunMigrationUp(databaseObject.GetDBConnection())
+
+	r := gin.Default()
+
+	// TODO: use globle Middlewhare here
+
+	// Register Routes here
+	routes.RegisterAuthRoutes(&r.RouterGroup)
+	routes.RegisterCOARoutes(&r.RouterGroup)
+
+	r.Run(":5050")
 
 }

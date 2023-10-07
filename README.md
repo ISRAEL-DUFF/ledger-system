@@ -1,6 +1,6 @@
 # The Go Ledger System
 This ledger system is a prototype implementation of the real world accounting ledger system. This project was inspired after taking on similar project in my current day-job.
-The aim of this project is to both learn about how the real world ledger accounting system works while also learning and improving on my go-lang skills.
+The aim of this project is to both learn about how the real world ledger accounting system works while also improving on my go-lang skills.
 
 # Database Tools
 ## The folowing go database tools needs to be installed

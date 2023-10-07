@@ -103,6 +103,10 @@ func (l ledgerAccount) TableName() string { return l.ledgerAccountDo.TableName()
 
 func (l ledgerAccount) Alias() string { return l.ledgerAccountDo.Alias() }
 
+func (l ledgerAccount) Columns(cols ...field.Expr) gen.Columns {
+	return l.ledgerAccountDo.Columns(cols...)
+}
+
 func (l *ledgerAccount) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := l.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -182,10 +186,6 @@ func (l ledgerAccountDo) Select(conds ...field.Expr) *ledgerAccountDo {
 
 func (l ledgerAccountDo) Where(conds ...gen.Condition) *ledgerAccountDo {
 	return l.withDO(l.DO.Where(conds...))
-}
-
-func (l ledgerAccountDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *ledgerAccountDo {
-	return l.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (l ledgerAccountDo) Order(conds ...field.Expr) *ledgerAccountDo {

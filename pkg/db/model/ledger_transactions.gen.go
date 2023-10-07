@@ -10,10 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const TableNameTransaction = "transactions"
+const TableNameLedgerTransaction = "ledger_transactions"
 
-// Transaction mapped from table <transactions>
-type Transaction struct {
+// LedgerTransaction mapped from table <ledger_transactions>
+type LedgerTransaction struct {
 	ID          string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
 	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updated_at"`
@@ -22,7 +22,7 @@ type Transaction struct {
 	Status      string         `gorm:"column:status;not null" json:"status"`
 }
 
-// TableName Transaction's table name
-func (*Transaction) TableName() string {
-	return TableNameTransaction
+// TableName LedgerTransaction's table name
+func (*LedgerTransaction) TableName() string {
+	return TableNameLedgerTransaction
 }

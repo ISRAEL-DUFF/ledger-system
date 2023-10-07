@@ -94,6 +94,10 @@ func (j journalEntry) TableName() string { return j.journalEntryDo.TableName() }
 
 func (j journalEntry) Alias() string { return j.journalEntryDo.Alias() }
 
+func (j journalEntry) Columns(cols ...field.Expr) gen.Columns {
+	return j.journalEntryDo.Columns(cols...)
+}
+
 func (j *journalEntry) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := j.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -170,10 +174,6 @@ func (j journalEntryDo) Select(conds ...field.Expr) *journalEntryDo {
 
 func (j journalEntryDo) Where(conds ...gen.Condition) *journalEntryDo {
 	return j.withDO(j.DO.Where(conds...))
-}
-
-func (j journalEntryDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *journalEntryDo {
-	return j.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (j journalEntryDo) Order(conds ...field.Expr) *journalEntryDo {

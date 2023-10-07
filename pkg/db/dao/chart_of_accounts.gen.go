@@ -91,6 +91,10 @@ func (c chartOfAccount) TableName() string { return c.chartOfAccountDo.TableName
 
 func (c chartOfAccount) Alias() string { return c.chartOfAccountDo.Alias() }
 
+func (c chartOfAccount) Columns(cols ...field.Expr) gen.Columns {
+	return c.chartOfAccountDo.Columns(cols...)
+}
+
 func (c *chartOfAccount) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := c.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -166,10 +170,6 @@ func (c chartOfAccountDo) Select(conds ...field.Expr) *chartOfAccountDo {
 
 func (c chartOfAccountDo) Where(conds ...gen.Condition) *chartOfAccountDo {
 	return c.withDO(c.DO.Where(conds...))
-}
-
-func (c chartOfAccountDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *chartOfAccountDo {
-	return c.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (c chartOfAccountDo) Order(conds ...field.Expr) *chartOfAccountDo {

@@ -79,6 +79,10 @@ func (g gooseDbVersion) TableName() string { return g.gooseDbVersionDo.TableName
 
 func (g gooseDbVersion) Alias() string { return g.gooseDbVersionDo.Alias() }
 
+func (g gooseDbVersion) Columns(cols ...field.Expr) gen.Columns {
+	return g.gooseDbVersionDo.Columns(cols...)
+}
+
 func (g *gooseDbVersion) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 	_f, ok := g.fieldMap[fieldName]
 	if !ok || _f == nil {
@@ -150,10 +154,6 @@ func (g gooseDbVersionDo) Select(conds ...field.Expr) *gooseDbVersionDo {
 
 func (g gooseDbVersionDo) Where(conds ...gen.Condition) *gooseDbVersionDo {
 	return g.withDO(g.DO.Where(conds...))
-}
-
-func (g gooseDbVersionDo) Exists(subquery interface{ UnderlyingDB() *gorm.DB }) *gooseDbVersionDo {
-	return g.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }
 
 func (g gooseDbVersionDo) Order(conds ...field.Expr) *gooseDbVersionDo {
