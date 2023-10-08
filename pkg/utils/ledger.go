@@ -31,3 +31,7 @@ func CustomAlphabet(alphabet string, size int) func() (string, error) {
 	// fmt.Println(id)
 	return generatorFn
 }
+
+func NewAccountIdGenerator(size int) func() (string, error) {
+	return CustomAlphabet("0123456789", size)
+}

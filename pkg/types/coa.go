@@ -15,3 +15,9 @@ type ChartOfAccount struct {
 	AccountNumber string
 	CreatedAt     string
 }
+
+type CreateCoaAccount struct {
+	AccountType LedgerAccountType
+	Name        string
+	Description string
+}

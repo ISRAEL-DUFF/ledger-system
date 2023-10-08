@@ -13,7 +13,7 @@ type CoaService struct {
 }
 
 type ICoaService interface {
-	CreateAccount(accountType types.LedgerAccountType, name string, description string) (id string, accountNumber string)
+	CreateAccount(input types.CreateCoaAccount) (id string, accountNumber string)
 	FindByName(accountName string) (*types.ChartOfAccount, error)
 	FindByAccountNumber(accountNumber string)
 	ListAll() ([]*types.ChartOfAccount, error)
@@ -25,12 +25,9 @@ func NewCoaService(CoaRepository repositories.IChartOfAccount) *CoaService {
 	}
 }
 
-func (coaService *CoaService) CreateAccount(accountType types.LedgerAccountType, name string, description string) (id string, accountNumber string) {
-	accountNum := generateAccountNumber(accountType)
-
-	// coaRepo := repositories.NewChartOfAccountRepository()
-
-	account, err := coaService.CoaRepository.Create(name, accountNum, string(accountType), description)
+func (coaService *CoaService) CreateAccount(input types.CreateCoaAccount) (id string, accountNumber string) {
+	accountNum := generateAccountNumber(input.AccountType)
+	account, err := coaService.CoaRepository.Create(input.Name, accountNum, string(input.AccountType), input.Description)
 
 	if err != nil {
 		return "", ""

@@ -29,7 +29,11 @@ func CreateAccount(c *gin.Context) {
 		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "Invalid payload!!!")
 	}
 
-	id, accountNumber := coaService.CreateAccount(types.ASSET, payload.Name, payload.Description)
+	id, accountNumber := coaService.CreateAccount(types.CreateCoaAccount{
+		AccountType: types.ASSET,
+		Name:        payload.Name,
+		Description: payload.Description,
+	})
 
 	if id == "" {
 		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "Unable to create account!!!")

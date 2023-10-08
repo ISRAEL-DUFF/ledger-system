@@ -4,6 +4,7 @@ type LedgerBook string
 type LedgerAccountStatus string
 type AccountBlockStatus string
 type JournalType string
+type TransactionStatus string
 
 const (
 	CASH_RECEIPT   LedgerBook = "cash_receipt"
@@ -23,6 +24,11 @@ const (
 const (
 	DEBIT  JournalType = "debit"
 	CREDIT JournalType = "credit"
+)
+
+const (
+	TRANSACTION_PENDING  TransactionStatus = "pending"
+	TRANSACTION_APPROVED TransactionStatus = "approved"
 )
 
 type CreateLedgerAccount struct {
@@ -54,4 +60,34 @@ type CreateJournalEntry struct {
 	Memo           string
 	OwnerId        string
 	OrganizationId string
+}
+
+type CreateLedgerTransaction struct {
+	Status LedgerAccountStatus
+}
+
+type InternalAccount struct {
+	AccountNumber string
+	OwnerId       string
+	Label         string
+}
+
+type AccountPairs struct {
+	A1 string
+	A2 string
+	A3 string
+	A4 string
+}
+
+type AccountRepresentation struct {
+	AccountNumber        string
+	OwnerId              string
+	Book                 LedgerBook
+	CurrentActiveBlockId string
+	Status               LedgerAccountStatus
+	Label                string
+	BlockCount           int
+	Particular           string
+	CreatedAt            string
+	Balance              int
 }
