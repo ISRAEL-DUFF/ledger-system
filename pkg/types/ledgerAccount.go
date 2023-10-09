@@ -91,3 +91,14 @@ type AccountRepresentation struct {
 	CreatedAt            string
 	Balance              int
 }
+
+type AccountStatusInfo struct {
+	AccountNumber string
+	Type          string
+	Balance       int
+}
+
+type AccountStatus struct {
+	Balanced bool
+	Accounts []AccountStatusInfo
+}

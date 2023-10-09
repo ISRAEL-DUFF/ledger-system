@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
@@ -12,6 +13,7 @@ type ILedgerAccount interface {
 	Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error)
 	FindById(id string) (*model.LedgerAccount, error)
 	FindByAccountNumber(accountNumber string) (*model.LedgerAccount, error)
+	Update(data *model.LedgerAccount) error
 }
 
 type LedgerAccountRepository struct {
@@ -71,4 +73,18 @@ func (ledger *LedgerAccountRepository) FindByAccountNumber(accountNumber string)
 	}
 
 	return account, nil
+}
+
+func (ledger *LedgerAccountRepository) Update(data *model.LedgerAccount) error {
+	if data.ID == "" {
+		return errors.New("unable to update ledger account data without primary ID")
+	}
+
+	ledgerAccount := config.DbInstance().GetDBQuery().LedgerAccount.WithContext(context.Background())
+
+	if err := ledgerAccount.Save(data); err != nil {
+		return err
+	}
+
+	return nil
 }

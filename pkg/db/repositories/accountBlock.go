@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
@@ -11,6 +12,7 @@ import (
 type IAccountBlock interface {
 	Create(input types.CreateAccountBlock) (*model.AccountBlock, error)
 	FindById(id string) (*model.AccountBlock, error)
+	Update(data *model.AccountBlock) error
 }
 
 type AccountBlockRepository struct {
@@ -50,4 +52,19 @@ func (accountBlockRep *AccountBlockRepository) FindById(id string) (*model.Accou
 	}
 
 	return acctBlock, nil
+}
+
+func (accountBlockRep *AccountBlockRepository) Update(data *model.AccountBlock) error {
+	if data.ID == "" {
+		return errors.New("can't update account block without primary ID")
+	}
+
+	dbInstance := config.DbInstance().GetDBQuery()
+	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
+
+	if err := accountBlock.Save(data); err != nil {
+		return err
+	}
+
+	return nil
 }

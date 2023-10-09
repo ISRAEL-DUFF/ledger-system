@@ -10,6 +10,13 @@ import (
 )
 
 type IAccountService interface {
+	CreateLedgerAccount(name string, ownerId string, opts ...LedgerAccountOption) (string, error)
+	CreateInternalAccounts(ownerId string) []*types.InternalAccount
+	GetAccountPairs(mainAccountNumber string) *types.AccountPairs
+	AccountBalance(accountNumber string) int
+	GetAccount(accountNumber string) *types.AccountRepresentation
+	InitializeNewBlock(accountNumber string) *types.AccountRepresentation
+	AccountStatus(mainAccountNumber string) *types.AccountStatus
 }
 
 type AccountService struct {
@@ -195,5 +202,105 @@ func (accountService *AccountService) GetAccount(accountNumber string) *types.Ac
 		Particular:           account.Particular,
 		CreatedAt:            account.CreatedAt.String(),
 		Balance:              balance,
+	}
+}
+
+func (accountService *AccountService) InitializeNewBlock(accountNumber string) *types.AccountRepresentation {
+	fmt.Println("Initializing a new block for " + accountNumber)
+	account, err := accountService.ledgerAccountRepo.FindByAccountNumber(accountNumber)
+
+	if err != nil {
+		panic("invalid account number")
+	}
+
+	balance := accountService.AccountBalance(accountNumber)
+
+	block, blckErr := accountService.accountBlockRepo.FindById(account.CurrentActiveBlockID)
+
+	if blckErr != nil {
+		panic("invalid block")
+	}
+
+	if block.TransactionsCount < block.BlockSize {
+		return &types.AccountRepresentation{
+			AccountNumber:        accountNumber,
+			OwnerId:              account.OwnerID,
+			Book:                 types.LedgerBook(account.Book),
+			CurrentActiveBlockId: account.CurrentActiveBlockID,
+			Status:               types.LedgerAccountStatus(account.Status),
+			Label:                account.Label,
+			BlockCount:           int(account.BlockCount),
+			Particular:           account.Particular,
+			CreatedAt:            account.CreatedAt.String(),
+			Balance:              balance,
+		}
+	}
+
+	block.Status = string(types.CLOSE)
+	block.IsCurrentBlock = false
+
+	accountService.accountBlockRepo.Update(block)
+
+	newBlock, createErr := accountService.accountBlockRepo.Create(types.CreateAccountBlock{
+		IsCurrentBlock:    true,
+		Status:            types.OPEN,
+		TransactionsCount: 0,
+		BlockSize:         50,
+		AccountId:         account.ID,
+	})
+
+	if createErr != nil {
+		panic("unable to create new block")
+	}
+
+	account.CurrentActiveBlockID = newBlock.ID
+	account.BlockCount += 1
+
+	accountService.ledgerAccountRepo.Update(account)
+
+	return &types.AccountRepresentation{
+		AccountNumber:        accountNumber,
+		OwnerId:              account.OwnerID,
+		Book:                 types.LedgerBook(account.Book),
+		CurrentActiveBlockId: account.CurrentActiveBlockID,
+		Status:               types.LedgerAccountStatus(account.Status),
+		Label:                account.Label,
+		BlockCount:           int(account.BlockCount),
+		Particular:           account.Particular,
+		CreatedAt:            account.CreatedAt.String(),
+		Balance:              balance,
+	}
+}
+
+func (accountService *AccountService) AccountStatus(mainAccountNumber string) *types.AccountStatus {
+	accountPairs := accountService.GetAccountPairs(mainAccountNumber)
+	a1AccountBalance := accountService.AccountBalance(accountPairs.A1)
+	a2AccountBalance := accountService.AccountBalance(accountPairs.A2)
+	a3AccountBalance := accountService.AccountBalance(accountPairs.A3)
+	a4AccountBalance := accountService.AccountBalance(accountPairs.A4)
+
+	netBalance := a1AccountBalance + a2AccountBalance + a3AccountBalance + a4AccountBalance
+
+	accounts := [4]types.AccountStatusInfo{{
+		AccountNumber: accountPairs.A1,
+		Balance:       a1AccountBalance,
+		Type:          "A1",
+	}, {
+		AccountNumber: accountPairs.A2,
+		Balance:       a1AccountBalance,
+		Type:          "A2",
+	}, {
+		AccountNumber: accountPairs.A3,
+		Balance:       a1AccountBalance,
+		Type:          "A3",
+	}, {
+		AccountNumber: accountPairs.A4,
+		Balance:       a1AccountBalance,
+		Type:          "A4",
+	}}
+
+	return &types.AccountStatus{
+		Balanced: netBalance == 0,
+		Accounts: accounts[:],
 	}
 }
