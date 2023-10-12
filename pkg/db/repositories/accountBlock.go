@@ -5,25 +5,38 @@ import (
 	"errors"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
+	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
-type IAccountBlock interface {
+type IAccountBlockRepository interface {
+	WithTransaction(queryTx *dao.QueryTx) *AccountBlockRepository
 	Create(input types.CreateAccountBlock) (*model.AccountBlock, error)
 	FindById(id string) (*model.AccountBlock, error)
 	Update(data *model.AccountBlock) error
 }
 
 type AccountBlockRepository struct {
+	dbQuery *dao.Query
 }
 
-func NewAccountBlockRepository() *LedgerAccountRepository {
-	return &LedgerAccountRepository{}
+func NewAccountBlockRepository() *AccountBlockRepository {
+	dbInstance := config.DbInstance().GetDBQuery()
+
+	return &AccountBlockRepository{
+		dbQuery: dbInstance,
+	}
+}
+
+func (accountBlockRepo *AccountBlockRepository) WithTransaction(queryTx *dao.QueryTx) *AccountBlockRepository {
+	return &AccountBlockRepository{
+		dbQuery: queryTx.Query,
+	}
 }
 
 func (accountBlockRepo *AccountBlockRepository) Create(input types.CreateAccountBlock) (*model.AccountBlock, error) {
-	dbInstance := config.DbInstance().GetDBQuery()
+	dbInstance := accountBlockRepo.dbQuery
 	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
 
 	createdAccountBlock := &model.AccountBlock{
@@ -41,8 +54,8 @@ func (accountBlockRepo *AccountBlockRepository) Create(input types.CreateAccount
 	return createdAccountBlock, nil
 }
 
-func (accountBlockRep *AccountBlockRepository) FindById(id string) (*model.AccountBlock, error) {
-	dbInstance := config.DbInstance().GetDBQuery()
+func (accountBlockRepo *AccountBlockRepository) FindById(id string) (*model.AccountBlock, error) {
+	dbInstance := accountBlockRepo.dbQuery
 	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
 
 	acctBlock, err := accountBlock.Where(dbInstance.AccountBlock.ID.Eq(id)).First()
@@ -59,7 +72,7 @@ func (accountBlockRep *AccountBlockRepository) Update(data *model.AccountBlock) 
 		return errors.New("can't update account block without primary ID")
 	}
 
-	dbInstance := config.DbInstance().GetDBQuery()
+	dbInstance := accountBlockRep.dbQuery
 	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
 
 	if err := accountBlock.Save(data); err != nil {

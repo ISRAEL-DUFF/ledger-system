@@ -80,6 +80,7 @@ type AccountPairs struct {
 }
 
 type AccountRepresentation struct {
+	ID                   string
 	AccountNumber        string
 	OwnerId              string
 	Book                 LedgerBook
@@ -101,4 +102,34 @@ type AccountStatusInfo struct {
 type AccountStatus struct {
 	Balanced bool
 	Accounts []AccountStatusInfo
+}
+
+type TransactionEntry struct {
+	AccountNumber string
+	Amount        int
+	Type          JournalType
+}
+
+type TransactionInputEntry struct {
+	TransactionEntry
+	Memo           string
+	OwnerId        string
+	OrganizationId string
+}
+type TransactionInput struct {
+	Entries []TransactionInputEntry
+}
+
+type TransactionResponse struct {
+	Entries       []TransactionEntry
+	Status        TransactionStatus
+	TransactionId string
+}
+
+type CreateBlockMetum struct {
+	AccountId      string
+	BlockTxLimit   int
+	TransitionTxId string
+	OpeningDate    string
+	ClosingDate    string
 }

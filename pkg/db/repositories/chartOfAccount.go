@@ -6,15 +6,18 @@ import (
 	"fmt"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
+	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 )
 
 // var dbInstance = config.DbInstance().GetDBQuery()
 
 type ChartOfAccountRepository struct {
+	dbQuery *dao.Query
 }
 
 type IChartOfAccount interface {
+	WithTransaction(queryTx *dao.QueryTx) *ChartOfAccountRepository
 	Create(name string, accountNumber string, accountType string, description string) (*model.ChartOfAccount, error)
 	FindById(id string) (*model.ChartOfAccount, error)
 	FindByName(accountName string) (*model.ChartOfAccount, error)
@@ -31,11 +34,20 @@ type IChartOfAccount interface {
 // }
 
 func NewChartOfAccountRepository() *ChartOfAccountRepository {
-	return &ChartOfAccountRepository{}
+	var dbInstance = config.DbInstance().GetDBQuery()
+	return &ChartOfAccountRepository{
+		dbQuery: dbInstance,
+	}
+}
+
+func (repo *ChartOfAccountRepository) WithTransaction(queryTx *dao.QueryTx) *ChartOfAccountRepository {
+	return &ChartOfAccountRepository{
+		dbQuery: queryTx.Query,
+	}
 }
 
 func (repo *ChartOfAccountRepository) Create(name string, accountNumber string, accountType string, description string) (*model.ChartOfAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = repo.dbQuery
 	ctx := context.Background()
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 
@@ -54,7 +66,7 @@ func (repo *ChartOfAccountRepository) Create(name string, accountNumber string, 
 }
 
 func (repo *ChartOfAccountRepository) FindById(id string) (*model.ChartOfAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = repo.dbQuery
 	ctx := context.Background()
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 
@@ -69,7 +81,7 @@ func (repo *ChartOfAccountRepository) FindById(id string) (*model.ChartOfAccount
 }
 
 func (repo *ChartOfAccountRepository) FindByName(accountName string) (*model.ChartOfAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = repo.dbQuery
 	ctx := context.Background()
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 
@@ -84,7 +96,7 @@ func (repo *ChartOfAccountRepository) FindByName(accountName string) (*model.Cha
 }
 
 func (repo *ChartOfAccountRepository) FindByAccountNumber(accountNumber string) (*model.ChartOfAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = repo.dbQuery
 	ctx := context.Background()
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 
@@ -99,7 +111,7 @@ func (repo *ChartOfAccountRepository) FindByAccountNumber(accountNumber string) 
 }
 
 func (repo *ChartOfAccountRepository) FindAll() ([]*model.ChartOfAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = repo.dbQuery
 	ctx := context.Background()
 	chartOfAccount := dbInstance.ChartOfAccount.WithContext(ctx)
 

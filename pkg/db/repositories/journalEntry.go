@@ -4,25 +4,37 @@ import (
 	"context"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
+	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
 type IJournalEntry interface {
+	WithTransaction(queryTx *dao.QueryTx) *JournalEntryRepository
 	Create(input types.CreateJournalEntry) (*model.JournalEntry, error)
 	FindById(id string) (*model.JournalEntry, error)
 	FindAllByBlockId(blockId string) ([]*model.JournalEntry, error)
 }
 
 type JournalEntryRepository struct {
+	dbQuery *dao.Query
 }
 
 func NewJournalEntryRepository() *JournalEntryRepository {
-	return &JournalEntryRepository{}
+	dbInstance := config.DbInstance().GetDBQuery()
+	return &JournalEntryRepository{
+		dbQuery: dbInstance,
+	}
+}
+
+func (journalEntryRepo *JournalEntryRepository) WithTransaction(queryTx *dao.QueryTx) *JournalEntryRepository {
+	return &JournalEntryRepository{
+		dbQuery: queryTx.Query,
+	}
 }
 
 func (journalEntryRepo *JournalEntryRepository) Create(input types.CreateJournalEntry) (*model.JournalEntry, error) {
-	dbInstance := config.DbInstance().GetDBQuery()
+	dbInstance := journalEntryRepo.dbQuery
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
 	createdJournalEntry := &model.JournalEntry{
@@ -45,7 +57,7 @@ func (journalEntryRepo *JournalEntryRepository) Create(input types.CreateJournal
 }
 
 func (journalEntryRepo *JournalEntryRepository) FindById(id string) (*model.JournalEntry, error) {
-	dbInstance := config.DbInstance().GetDBQuery()
+	dbInstance := journalEntryRepo.dbQuery
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
 	jEntry, err := journalEntry.Where(dbInstance.JournalEntry.ID.Eq(id)).First()
@@ -58,7 +70,7 @@ func (journalEntryRepo *JournalEntryRepository) FindById(id string) (*model.Jour
 }
 
 func (journalEntryRepo *JournalEntryRepository) FindAllByBlockId(blockId string) ([]*model.JournalEntry, error) {
-	dbInstance := config.DbInstance().GetDBQuery()
+	dbInstance := journalEntryRepo.dbQuery
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
 	jEntries, err := journalEntry.Where(dbInstance.JournalEntry.BlockID.Eq(blockId)).Find()

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/types"
 	"github.com/israel-duff/ledger-system/pkg/utils"
@@ -15,13 +16,13 @@ type IAccountService interface {
 	GetAccountPairs(mainAccountNumber string) *types.AccountPairs
 	AccountBalance(accountNumber string) int
 	GetAccount(accountNumber string) *types.AccountRepresentation
-	InitializeNewBlock(accountNumber string) *types.AccountRepresentation
+	InitializeNewBlock(accountNumber string, dbQueryTx dao.QueryTx) *types.AccountRepresentation
 	AccountStatus(mainAccountNumber string) *types.AccountStatus
 }
 
 type AccountService struct {
 	chartOfAccountService ICoaService
-	accountBlockRepo      repositories.IAccountBlock
+	accountBlockRepo      repositories.IAccountBlockRepository
 	ledgerAccountRepo     repositories.ILedgerAccount
 	journalEntryRepo      repositories.IJournalEntry
 }
@@ -34,7 +35,7 @@ type CreateLedgerAccountOptionInput struct {
 
 type LedgerAccountOption func(*CreateLedgerAccountOptionInput)
 
-func NewAccountService(chartOfAccountService ICoaService, accountBlock repositories.IAccountBlock, ledgerAccount repositories.ILedgerAccount, journalEntry repositories.IJournalEntry) *AccountService {
+func NewAccountService(chartOfAccountService ICoaService, accountBlock repositories.IAccountBlockRepository, ledgerAccount repositories.ILedgerAccount, journalEntry repositories.IJournalEntry) *AccountService {
 	return &AccountService{
 		chartOfAccountService: chartOfAccountService,
 		accountBlockRepo:      accountBlock,
@@ -173,7 +174,7 @@ func (accountService *AccountService) AccountBalance(accountNumber string) int {
 
 	for _, entry := range entries {
 		if entry.Type == string(types.DEBIT) {
-			balance += int(entry.Amount)
+			balance -= int(entry.Amount)
 		} else {
 			balance += int(entry.Amount)
 		}
@@ -192,6 +193,7 @@ func (accountService *AccountService) GetAccount(accountNumber string) *types.Ac
 	balance := accountService.AccountBalance(accountNumber)
 
 	return &types.AccountRepresentation{
+		ID:                   account.ID,
 		AccountNumber:        accountNumber,
 		OwnerId:              account.OwnerID,
 		Book:                 types.LedgerBook(account.Book),
@@ -205,9 +207,10 @@ func (accountService *AccountService) GetAccount(accountNumber string) *types.Ac
 	}
 }
 
-func (accountService *AccountService) InitializeNewBlock(accountNumber string) *types.AccountRepresentation {
+func (accountService *AccountService) InitializeNewBlock(accountNumber string, dbQueryTx dao.QueryTx) *types.AccountRepresentation {
 	fmt.Println("Initializing a new block for " + accountNumber)
-	account, err := accountService.ledgerAccountRepo.FindByAccountNumber(accountNumber)
+	accountRepo := accountService.ledgerAccountRepo.WithTransaction(&dbQueryTx)
+	account, err := accountRepo.FindByAccountNumber(accountNumber)
 
 	if err != nil {
 		panic("invalid account number")
@@ -215,7 +218,8 @@ func (accountService *AccountService) InitializeNewBlock(accountNumber string) *
 
 	balance := accountService.AccountBalance(accountNumber)
 
-	block, blckErr := accountService.accountBlockRepo.FindById(account.CurrentActiveBlockID)
+	accountBlockRepo := accountService.accountBlockRepo.WithTransaction(&dbQueryTx)
+	block, blckErr := accountBlockRepo.FindById(account.CurrentActiveBlockID)
 
 	if blckErr != nil {
 		panic("invalid block")
@@ -239,9 +243,9 @@ func (accountService *AccountService) InitializeNewBlock(accountNumber string) *
 	block.Status = string(types.CLOSE)
 	block.IsCurrentBlock = false
 
-	accountService.accountBlockRepo.Update(block)
+	accountBlockRepo.Update(block)
 
-	newBlock, createErr := accountService.accountBlockRepo.Create(types.CreateAccountBlock{
+	newBlock, createErr := accountBlockRepo.Create(types.CreateAccountBlock{
 		IsCurrentBlock:    true,
 		Status:            types.OPEN,
 		TransactionsCount: 0,
@@ -256,7 +260,7 @@ func (accountService *AccountService) InitializeNewBlock(accountNumber string) *
 	account.CurrentActiveBlockID = newBlock.ID
 	account.BlockCount += 1
 
-	accountService.ledgerAccountRepo.Update(account)
+	accountRepo.Update(account)
 
 	return &types.AccountRepresentation{
 		AccountNumber:        accountNumber,

@@ -5,11 +5,13 @@ import (
 	"errors"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
+	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
 type ILedgerAccount interface {
+	WithTransaction(queryTx *dao.QueryTx) *LedgerAccountRepository
 	Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error)
 	FindById(id string) (*model.LedgerAccount, error)
 	FindByAccountNumber(accountNumber string) (*model.LedgerAccount, error)
@@ -17,14 +19,24 @@ type ILedgerAccount interface {
 }
 
 type LedgerAccountRepository struct {
+	dbQuery *dao.Query
 }
 
 func NewLedgerAccountRepository() *LedgerAccountRepository {
-	return &LedgerAccountRepository{}
+	var dbInstance = config.DbInstance().GetDBQuery()
+	return &LedgerAccountRepository{
+		dbQuery: dbInstance,
+	}
+}
+
+func (ledger *LedgerAccountRepository) WithTransaction(queryTx *dao.QueryTx) *LedgerAccountRepository {
+	return &LedgerAccountRepository{
+		dbQuery: queryTx.Query,
+	}
 }
 
 func (ledger *LedgerAccountRepository) Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = ledger.dbQuery
 	ctx := context.Background()
 	ledgerAccount := dbInstance.LedgerAccount.WithContext(ctx)
 
@@ -48,7 +60,7 @@ func (ledger *LedgerAccountRepository) Create(input types.CreateLedgerAccount) (
 }
 
 func (ledger *LedgerAccountRepository) FindById(id string) (*model.LedgerAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = ledger.dbQuery
 	ctx := context.Background()
 	ledgerAccount := dbInstance.LedgerAccount.WithContext(ctx)
 
@@ -62,7 +74,7 @@ func (ledger *LedgerAccountRepository) FindById(id string) (*model.LedgerAccount
 }
 
 func (ledger *LedgerAccountRepository) FindByAccountNumber(accountNumber string) (*model.LedgerAccount, error) {
-	var dbInstance = config.DbInstance().GetDBQuery()
+	var dbInstance = ledger.dbQuery
 	ctx := context.Background()
 	ledgerAccount := dbInstance.LedgerAccount.WithContext(ctx)
 
@@ -80,7 +92,7 @@ func (ledger *LedgerAccountRepository) Update(data *model.LedgerAccount) error {
 		return errors.New("unable to update ledger account data without primary ID")
 	}
 
-	ledgerAccount := config.DbInstance().GetDBQuery().LedgerAccount.WithContext(context.Background())
+	ledgerAccount := ledger.dbQuery.LedgerAccount.WithContext(context.Background())
 
 	if err := ledgerAccount.Save(data); err != nil {
 		return err
