@@ -10,7 +10,7 @@ import (
 )
 
 type ILedgerTransactionRepository interface {
-	WithTransaction(queryTx *dao.QueryTx) *LedgerTransactionRepository
+	types.IBaseRepository[ILedgerTransactionRepository]
 	Create(input types.CreateLedgerTransaction) (*model.LedgerTransaction, error)
 	FindById(id string) (*model.LedgerTransaction, error)
 	UpdateStatus(id string, txStatus types.TransactionStatus) error

@@ -11,7 +11,7 @@ import (
 )
 
 type IAccountBlockRepository interface {
-	WithTransaction(queryTx *dao.QueryTx) *AccountBlockRepository
+	types.IBaseRepository[IAccountBlockRepository]
 	Create(input types.CreateAccountBlock) (*model.AccountBlock, error)
 	FindById(id string) (*model.AccountBlock, error)
 	Update(data *model.AccountBlock) error
@@ -29,10 +29,14 @@ func NewAccountBlockRepository() *AccountBlockRepository {
 	}
 }
 
-func (accountBlockRepo *AccountBlockRepository) WithTransaction(queryTx *dao.QueryTx) *AccountBlockRepository {
+func (accountBlockRepo *AccountBlockRepository) WithTransaction(queryTx types.IDBTransaction) IAccountBlockRepository {
 	return &AccountBlockRepository{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (accountBlockRepo *AccountBlockRepository) BeginTransaction() types.IDBTransaction {
+	return accountBlockRepo.dbQuery.Begin()
 }
 
 func (accountBlockRepo *AccountBlockRepository) Create(input types.CreateAccountBlock) (*model.AccountBlock, error) {

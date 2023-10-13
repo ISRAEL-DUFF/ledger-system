@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/types"
 	"github.com/israel-duff/ledger-system/pkg/utils"
@@ -16,7 +15,7 @@ type IAccountService interface {
 	GetAccountPairs(mainAccountNumber string) *types.AccountPairs
 	AccountBalance(accountNumber string) int
 	GetAccount(accountNumber string) *types.AccountRepresentation
-	InitializeNewBlock(accountNumber string, dbQueryTx dao.QueryTx) *types.AccountRepresentation
+	InitializeNewBlock(accountNumber string, dbQueryTx types.IDBTransaction) *types.AccountRepresentation
 	AccountStatus(mainAccountNumber string) *types.AccountStatus
 }
 
@@ -24,7 +23,7 @@ type AccountService struct {
 	chartOfAccountService ICoaService
 	accountBlockRepo      repositories.IAccountBlockRepository
 	ledgerAccountRepo     repositories.ILedgerAccount
-	journalEntryRepo      repositories.IJournalEntry
+	journalEntryRepo      repositories.IJournalEntryRepository
 }
 
 type CreateLedgerAccountOptionInput struct {
@@ -35,7 +34,7 @@ type CreateLedgerAccountOptionInput struct {
 
 type LedgerAccountOption func(*CreateLedgerAccountOptionInput)
 
-func NewAccountService(chartOfAccountService ICoaService, accountBlock repositories.IAccountBlockRepository, ledgerAccount repositories.ILedgerAccount, journalEntry repositories.IJournalEntry) *AccountService {
+func NewAccountService(chartOfAccountService ICoaService, accountBlock repositories.IAccountBlockRepository, ledgerAccount repositories.ILedgerAccount, journalEntry repositories.IJournalEntryRepository) *AccountService {
 	return &AccountService{
 		chartOfAccountService: chartOfAccountService,
 		accountBlockRepo:      accountBlock,
@@ -207,9 +206,9 @@ func (accountService *AccountService) GetAccount(accountNumber string) *types.Ac
 	}
 }
 
-func (accountService *AccountService) InitializeNewBlock(accountNumber string, dbQueryTx dao.QueryTx) *types.AccountRepresentation {
+func (accountService *AccountService) InitializeNewBlock(accountNumber string, dbQueryTx types.IDBTransaction) *types.AccountRepresentation {
 	fmt.Println("Initializing a new block for " + accountNumber)
-	accountRepo := accountService.ledgerAccountRepo.WithTransaction(&dbQueryTx)
+	accountRepo := accountService.ledgerAccountRepo.WithTransaction(dbQueryTx)
 	account, err := accountRepo.FindByAccountNumber(accountNumber)
 
 	if err != nil {
@@ -218,7 +217,7 @@ func (accountService *AccountService) InitializeNewBlock(accountNumber string, d
 
 	balance := accountService.AccountBalance(accountNumber)
 
-	accountBlockRepo := accountService.accountBlockRepo.WithTransaction(&dbQueryTx)
+	accountBlockRepo := accountService.accountBlockRepo.WithTransaction(dbQueryTx)
 	block, blckErr := accountBlockRepo.FindById(account.CurrentActiveBlockID)
 
 	if blckErr != nil {

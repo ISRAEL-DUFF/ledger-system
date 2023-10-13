@@ -9,8 +9,8 @@ import (
 	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
-type IJournalEntry interface {
-	WithTransaction(queryTx *dao.QueryTx) *JournalEntryRepository
+type IJournalEntryRepository interface {
+	types.IBaseRepository[IJournalEntryRepository]
 	Create(input types.CreateJournalEntry) (*model.JournalEntry, error)
 	FindById(id string) (*model.JournalEntry, error)
 	FindAllByBlockId(blockId string) ([]*model.JournalEntry, error)
@@ -27,10 +27,14 @@ func NewJournalEntryRepository() *JournalEntryRepository {
 	}
 }
 
-func (journalEntryRepo *JournalEntryRepository) WithTransaction(queryTx *dao.QueryTx) *JournalEntryRepository {
+func (journalEntryRepo *JournalEntryRepository) WithTransaction(queryTx types.IDBTransaction) IJournalEntryRepository {
 	return &JournalEntryRepository{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (repo *JournalEntryRepository) BeginTransaction() types.IDBTransaction {
+	return repo.dbQuery.Begin()
 }
 
 func (journalEntryRepo *JournalEntryRepository) Create(input types.CreateJournalEntry) (*model.JournalEntry, error) {

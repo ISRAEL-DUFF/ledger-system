@@ -8,16 +8,11 @@ import (
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
+	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
-// var dbInstance = config.DbInstance().GetDBQuery()
-
-type ChartOfAccountRepository struct {
-	dbQuery *dao.Query
-}
-
-type IChartOfAccount interface {
-	WithTransaction(queryTx *dao.QueryTx) *ChartOfAccountRepository
+type IChartOfAccountRepository interface {
+	types.IBaseRepository[IChartOfAccountRepository]
 	Create(name string, accountNumber string, accountType string, description string) (*model.ChartOfAccount, error)
 	FindById(id string) (*model.ChartOfAccount, error)
 	FindByName(accountName string) (*model.ChartOfAccount, error)
@@ -33,6 +28,10 @@ type IChartOfAccount interface {
 //     Delete(...) error
 // }
 
+type ChartOfAccountRepository struct {
+	dbQuery *dao.Query
+}
+
 func NewChartOfAccountRepository() *ChartOfAccountRepository {
 	var dbInstance = config.DbInstance().GetDBQuery()
 	return &ChartOfAccountRepository{
@@ -40,10 +39,14 @@ func NewChartOfAccountRepository() *ChartOfAccountRepository {
 	}
 }
 
-func (repo *ChartOfAccountRepository) WithTransaction(queryTx *dao.QueryTx) *ChartOfAccountRepository {
+func (repo *ChartOfAccountRepository) WithTransaction(queryTx types.IDBTransaction) IChartOfAccountRepository {
 	return &ChartOfAccountRepository{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (repo *ChartOfAccountRepository) BeginTransaction() types.IDBTransaction {
+	return repo.dbQuery.Begin()
 }
 
 func (repo *ChartOfAccountRepository) Create(name string, accountNumber string, accountType string, description string) (*model.ChartOfAccount, error) {

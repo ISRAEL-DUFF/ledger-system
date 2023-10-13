@@ -9,7 +9,7 @@ import (
 )
 
 type CoaService struct {
-	CoaRepository repositories.IChartOfAccount
+	CoaRepository repositories.IChartOfAccountRepository
 }
 
 type ICoaService interface {
@@ -19,7 +19,7 @@ type ICoaService interface {
 	ListAll() ([]*types.ChartOfAccount, error)
 }
 
-func NewCoaService(CoaRepository repositories.IChartOfAccount) *CoaService {
+func NewCoaService(CoaRepository repositories.IChartOfAccountRepository) *CoaService {
 	return &CoaService{
 		CoaRepository: CoaRepository,
 	}

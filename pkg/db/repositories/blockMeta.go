@@ -11,7 +11,7 @@ import (
 )
 
 type IBlockMetumRepository interface {
-	WithTransaction(queryTx *dao.QueryTx) *BlockMetum
+	types.IBaseRepository[IBlockMetumRepository]
 	Create(input types.CreateBlockMetum) (*model.BlockMetum, error)
 	FindById(id string) (*model.BlockMetum, error)
 	Update(data *model.BlockMetum) error
@@ -29,10 +29,14 @@ func NewBlockMetumRepository() *BlockMetum {
 	}
 }
 
-func (blockMetumRepo *BlockMetum) WithTransaction(queryTx *dao.QueryTx) *BlockMetum {
+func (blockMetumRepo *BlockMetum) WithTransaction(queryTx types.IDBTransaction) IBlockMetumRepository {
 	return &BlockMetum{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (blockMetumRepo *BlockMetum) BeginTransaction() types.IDBTransaction {
+	return blockMetumRepo.dbQuery.Begin()
 }
 
 func (blockMetumRepo *BlockMetum) Create(input types.CreateBlockMetum) (*model.BlockMetum, error) {

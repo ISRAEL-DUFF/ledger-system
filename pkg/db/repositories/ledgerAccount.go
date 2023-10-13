@@ -11,7 +11,7 @@ import (
 )
 
 type ILedgerAccount interface {
-	WithTransaction(queryTx *dao.QueryTx) *LedgerAccountRepository
+	types.IBaseRepository[ILedgerAccount]
 	Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error)
 	FindById(id string) (*model.LedgerAccount, error)
 	FindByAccountNumber(accountNumber string) (*model.LedgerAccount, error)

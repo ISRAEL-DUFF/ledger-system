@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/israel-duff/ledger-system/pkg/config"
-	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/types"
 )
 
 type ITransactionService interface {
+	CreateLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error)
 }
 
 type CreateTransactionOption func(*types.TransactionInput)
 
 type TransactionService struct {
 	transactionRepo  repositories.ILedgerTransactionRepository
-	journalRepo      repositories.IJournalEntry
+	journalRepo      repositories.IJournalEntryRepository
 	accountBlockRepo repositories.IAccountBlockRepository
 	blockMetumRepo   repositories.IBlockMetumRepository
 	accountService   IAccountService
@@ -26,7 +25,7 @@ type TransactionService struct {
 
 func NewTransactionService(
 	transactionRepo repositories.ILedgerTransactionRepository,
-	journalRep repositories.IJournalEntry,
+	journalRep repositories.IJournalEntryRepository,
 	accountBlockRepo repositories.IAccountBlockRepository,
 	blockMetumRepo repositories.IBlockMetumRepository,
 	accountService IAccountService) *TransactionService {
@@ -42,7 +41,7 @@ func NewTransactionService(
 func (txService *TransactionService) CreateLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error) {
 	sumOfCredits := 0
 	sumOfDebits := 0
-	dbQuery := config.DbInstance().GetDBQuery()
+	// dbQuery := config.DbInstance().GetDBQuery()
 
 	for _, entry := range input.Entries {
 		if entry.Type == types.CREDIT {
@@ -56,7 +55,8 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 		return types.TransactionResponse{}, errors.New("invalid transaction amounts")
 	}
 
-	dbQueryTx := dbQuery.Begin()
+	// dbQueryTx := dbQuery.Begin()
+	dbQueryTx := txService.accountBlockRepo.BeginTransaction()
 
 	txRepo := txService.transactionRepo.WithTransaction(dbQueryTx)
 
@@ -80,7 +80,7 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 		}
 
 		// TODO: post transaction here
-		txService.postTransaction(entry, transaction.ID, *account, *dbQueryTx)
+		txService.postTransaction(entry, transaction.ID, *account, dbQueryTx)
 
 		treatedEntries[index] = types.TransactionEntry{
 			Amount:        entry.Amount,
@@ -104,15 +104,15 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 	}, nil
 }
 
-func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx dao.QueryTx) {
-	blockRepo := txService.accountBlockRepo.WithTransaction(&dbQueryTx)
+func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {
+	blockRepo := txService.accountBlockRepo.WithTransaction(dbQueryTx)
 	block, err := blockRepo.FindById(blockId)
 
 	if err != nil {
 		panic("invalid block")
 	}
 
-	journalEntryRepo := txService.journalRepo.WithTransaction(&dbQueryTx)
+	journalEntryRepo := txService.journalRepo.WithTransaction(dbQueryTx)
 	_, createErr := journalEntryRepo.Create(types.CreateJournalEntry{
 		Amount:         entry.Amount,
 		Type:           entry.Type,
@@ -135,10 +135,10 @@ func (txService *TransactionService) postTransactionToBlock(entry types.Transact
 	}
 }
 
-func (txService *TransactionService) spawnNewAccountBlock(account *types.AccountRepresentation, queryBdTx dao.QueryTx) *types.AccountRepresentation {
+func (txService *TransactionService) spawnNewAccountBlock(account *types.AccountRepresentation, queryBdTx types.IDBTransaction) *types.AccountRepresentation {
 	oldBlockId := account.CurrentActiveBlockId
 	newAccount := txService.accountService.InitializeNewBlock(account.AccountNumber, queryBdTx)
-	transactionRepo := txService.transactionRepo.WithTransaction(&queryBdTx)
+	transactionRepo := txService.transactionRepo.WithTransaction(queryBdTx)
 
 	if newAccount.CurrentActiveBlockId == oldBlockId {
 		return newAccount
@@ -194,7 +194,7 @@ func (txService *TransactionService) spawnNewAccountBlock(account *types.Account
 
 	fmt.Println("Previous BlockTransactionsCount: " + string(oldBlock.TransactionsCount))
 
-	txBlockMetaRepo := txService.blockMetumRepo.WithTransaction(&queryBdTx)
+	txBlockMetaRepo := txService.blockMetumRepo.WithTransaction(queryBdTx)
 	txBlockMetaRepo.Create(types.CreateBlockMetum{
 		AccountId:      account.ID,
 		BlockTxLimit:   int(oldBlock.BlockSize),
@@ -206,8 +206,8 @@ func (txService *TransactionService) spawnNewAccountBlock(account *types.Account
 	return newAccount
 }
 
-func (txService *TransactionService) postTransaction(entry types.TransactionInputEntry, transactionId string, account types.AccountRepresentation, dbQueryTx dao.QueryTx) {
-	blockRepo := txService.accountBlockRepo.WithTransaction(&dbQueryTx)
+func (txService *TransactionService) postTransaction(entry types.TransactionInputEntry, transactionId string, account types.AccountRepresentation, dbQueryTx types.IDBTransaction) {
+	blockRepo := txService.accountBlockRepo.WithTransaction(dbQueryTx)
 	block, err := blockRepo.FindById(account.CurrentActiveBlockId)
 
 	if err != nil {
