@@ -21,6 +21,7 @@ type TransactionService struct {
 	accountBlockRepo repositories.IAccountBlockRepository
 	blockMetumRepo   repositories.IBlockMetumRepository
 	accountService   IAccountService
+	txQ              ITransactionQService
 }
 
 func NewTransactionService(
@@ -28,6 +29,7 @@ func NewTransactionService(
 	journalRep repositories.IJournalEntryRepository,
 	accountBlockRepo repositories.IAccountBlockRepository,
 	blockMetumRepo repositories.IBlockMetumRepository,
+	txQ ITransactionQService,
 	accountService IAccountService) *TransactionService {
 	return &TransactionService{
 		transactionRepo:  transactionRepo,
@@ -35,6 +37,7 @@ func NewTransactionService(
 		accountBlockRepo: accountBlockRepo,
 		blockMetumRepo:   blockMetumRepo,
 		accountService:   accountService,
+		txQ:              txQ,
 	}
 }
 
@@ -102,6 +105,16 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 		TransactionId: transaction.ID,
 		Entries:       treatedEntries[:],
 	}, nil
+}
+
+func (txService *TransactionService) CreateQueuedLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error) {
+	r, err := txService.txQ.Schedule(input, func(resInput types.TransactionInput) (types.TransactionResponse, error) {
+		resp, err := txService.CreateLedgerTransaction(resInput)
+
+		return resp, err
+	})
+
+	return r, err
 }
 
 func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {

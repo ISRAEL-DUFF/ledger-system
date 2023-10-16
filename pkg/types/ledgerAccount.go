@@ -133,3 +133,9 @@ type CreateBlockMetum struct {
 	OpeningDate    string
 	ClosingDate    string
 }
+
+type DependencyQueueItem struct {
+	Tx           TransactionInput
+	LockId       string
+	Dependencies []string
+}
