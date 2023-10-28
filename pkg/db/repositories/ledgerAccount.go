@@ -15,6 +15,7 @@ type ILedgerAccount interface {
 	Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error)
 	FindById(id string) (*model.LedgerAccount, error)
 	FindByAccountNumber(accountNumber string) (*model.LedgerAccount, error)
+	FindAllByAccountNumbers(accountNumbers []string) ([]*model.LedgerAccount, error)
 	Update(data *model.LedgerAccount) error
 }
 
@@ -85,6 +86,20 @@ func (ledger *LedgerAccountRepository) FindByAccountNumber(accountNumber string)
 	}
 
 	return account, nil
+}
+
+func (ledger *LedgerAccountRepository) FindAllByAccountNumbers(accountNumbers []string) ([]*model.LedgerAccount, error) {
+	var dbInstance = ledger.dbQuery
+	ctx := context.Background()
+	ledgerAccount := dbInstance.LedgerAccount.WithContext(ctx)
+
+	accounts, err := ledgerAccount.Where(dbInstance.LedgerAccount.AccountNumber.In(accountNumbers...)).Find()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
 }
 
 func (ledger *LedgerAccountRepository) Update(data *model.LedgerAccount) error {

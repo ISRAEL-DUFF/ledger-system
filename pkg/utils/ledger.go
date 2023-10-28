@@ -17,18 +17,12 @@ func CustomAlphabet(alphabet string, size int) func() (string, error) {
 		return buffer, nil
 	}
 
-	// id, err := nanoid.Format(generateBytesBuffer, alphabet, size)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	generatorFn := func() (string, error) {
 		id, err := nanoid.Format(generateBytesBuffer, alphabet, size)
 
 		return id, err
 	}
 
-	// fmt.Println(id)
 	return generatorFn
 }
 
@@ -38,7 +32,6 @@ func NewAccountIdGenerator(size int) func() (string, error) {
 
 func DeleteArrayItem[T any](index int32, array []T) ([]T, bool) {
 	arrayLen := len(array)
-	// newArray := make([]T, 0)
 
 	if index < 0 || index >= int32(arrayLen) {
 		return array, false
@@ -57,4 +50,73 @@ func GetArrayItemIndex[T comparable](item T, arr []T) (int, bool) {
 	}
 
 	return -1, false
+}
+
+func GenerateDefaultWalletRules() []map[string]interface{} {
+	fundingRule := map[string]interface{}{
+		"event": "fund",
+		"input": []string{
+			"accountNumber",
+			"memo",
+		},
+		"rule": map[string]interface{}{
+			"credit": "A1",
+			"debit":  "A2",
+		},
+	}
+
+	withdrawRule := map[string]interface{}{
+		"event": "withdraw",
+		"input": []string{
+			"accountNumber",
+			"memo",
+		},
+		"rule": map[string]interface{}{
+			"credit": "A3",
+			"debit":  "A1",
+		},
+	}
+
+	fundTransferRule := map[string]interface{}{
+		"event": "transfer",
+		"input": []string{
+			"fromAccountNumber",
+			"memo",
+		},
+		"rule": map[string]interface{}{
+			"credit": "A4",
+			"debit":  "A1",
+		},
+		"emitRules": []map[string]interface{}{
+			{
+				"event": "transfer.receive",
+				"to":    "toAccountNumber",
+				"withInput": []string{
+					"amount",
+					"memo",
+				},
+			},
+		},
+	}
+
+	fundTransferReceiveRule := map[string]interface{}{
+		"event": "transfer.receive",
+		"input": []string{
+			"accountNumber",
+			"memo",
+		},
+		"rule": map[string]interface{}{
+			"credit": "A1",
+			"debit":  "A4",
+		},
+	}
+
+	defaultRules := []map[string]interface{}{
+		fundingRule,
+		withdrawRule,
+		fundTransferRule,
+		fundTransferReceiveRule,
+	}
+
+	return defaultRules
 }

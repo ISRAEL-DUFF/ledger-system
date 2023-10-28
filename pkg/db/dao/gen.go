@@ -26,6 +26,8 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		LedgerAccount:     newLedgerAccount(db, opts...),
 		LedgerTransaction: newLedgerTransaction(db, opts...),
 		User:              newUser(db, opts...),
+		Wallet:            newWallet(db, opts...),
+		WalletType:        newWalletType(db, opts...),
 	}
 }
 
@@ -40,6 +42,8 @@ type Query struct {
 	LedgerAccount     ledgerAccount
 	LedgerTransaction ledgerTransaction
 	User              user
+	Wallet            wallet
+	WalletType        walletType
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -55,6 +59,8 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		LedgerAccount:     q.LedgerAccount.clone(db),
 		LedgerTransaction: q.LedgerTransaction.clone(db),
 		User:              q.User.clone(db),
+		Wallet:            q.Wallet.clone(db),
+		WalletType:        q.WalletType.clone(db),
 	}
 }
 
@@ -77,6 +83,8 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		LedgerAccount:     q.LedgerAccount.replaceDB(db),
 		LedgerTransaction: q.LedgerTransaction.replaceDB(db),
 		User:              q.User.replaceDB(db),
+		Wallet:            q.Wallet.replaceDB(db),
+		WalletType:        q.WalletType.replaceDB(db),
 	}
 }
 
@@ -89,6 +97,8 @@ type queryCtx struct {
 	LedgerAccount     *ledgerAccountDo
 	LedgerTransaction *ledgerTransactionDo
 	User              *userDo
+	Wallet            *walletDo
+	WalletType        *walletTypeDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -101,6 +111,8 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		LedgerAccount:     q.LedgerAccount.WithContext(ctx),
 		LedgerTransaction: q.LedgerTransaction.WithContext(ctx),
 		User:              q.User.WithContext(ctx),
+		Wallet:            q.Wallet.WithContext(ctx),
+		WalletType:        q.WalletType.WithContext(ctx),
 	}
 }
 

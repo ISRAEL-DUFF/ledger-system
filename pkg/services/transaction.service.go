@@ -11,6 +11,8 @@ import (
 
 type ITransactionService interface {
 	CreateLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error)
+	PostQueuedWalletTransaction(input types.PostTransactionInput) error
+	CreateQueuedLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error)
 }
 
 type CreateTransactionOption func(*types.TransactionInput)
@@ -44,7 +46,6 @@ func NewTransactionService(
 func (txService *TransactionService) CreateLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error) {
 	sumOfCredits := 0
 	sumOfDebits := 0
-	// dbQuery := config.DbInstance().GetDBQuery()
 
 	for _, entry := range input.Entries {
 		if entry.Type == types.CREDIT {
@@ -107,6 +108,66 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 	}, nil
 }
 
+func (txService *TransactionService) createSingleLedgerTransaction(input types.TransactionInput, dbQueryTx types.IDBTransaction) (types.TransactionResponse, error) {
+	sumOfCredits := 0
+	sumOfDebits := 0
+
+	for _, entry := range input.Entries {
+		if entry.Type == types.CREDIT {
+			sumOfCredits += entry.Amount
+		} else {
+			sumOfDebits += entry.Amount
+		}
+	}
+
+	if sumOfCredits != sumOfDebits {
+		return types.TransactionResponse{}, errors.New("invalid transaction amounts")
+	}
+
+	txRepo := txService.transactionRepo.WithTransaction(dbQueryTx)
+
+	transaction, err := txRepo.Create(types.CreateLedgerTransaction{
+		Status: types.PENDING,
+	})
+
+	if err != nil {
+		return types.TransactionResponse{}, err
+	}
+
+	treatedEntries := make([]types.TransactionEntry, len(input.Entries))
+
+	for index, entry := range input.Entries {
+		account := txService.accountService.GetAccount(entry.AccountNumber)
+
+		if entry.Type == types.DEBIT {
+			if account.Label == "A1" && account.Balance < entry.Amount {
+				panic("Insufficient fund on account " + entry.AccountNumber)
+			}
+		}
+
+		// TODO: post transaction here
+		txService.postTransaction(entry, transaction.ID, *account, dbQueryTx)
+
+		treatedEntries[index] = types.TransactionEntry{
+			Amount:        entry.Amount,
+			AccountNumber: entry.AccountNumber,
+			Type:          entry.Type,
+		}
+	}
+
+	updateErr := txRepo.UpdateStatus(transaction.ID, types.TRANSACTION_APPROVED)
+
+	if updateErr != nil {
+		dbQueryTx.Rollback()
+	}
+
+	return types.TransactionResponse{
+		Status:        types.TRANSACTION_APPROVED,
+		TransactionId: transaction.ID,
+		Entries:       treatedEntries[:],
+	}, nil
+}
+
 func (txService *TransactionService) CreateQueuedLedgerTransaction(input types.TransactionInput) (types.TransactionResponse, error) {
 	r, err := txService.txQ.Schedule(input, func(resInput types.TransactionInput) (types.TransactionResponse, error) {
 		resp, err := txService.CreateLedgerTransaction(resInput)
@@ -115,6 +176,32 @@ func (txService *TransactionService) CreateQueuedLedgerTransaction(input types.T
 	})
 
 	return r, err
+}
+
+func (txService *TransactionService) PostQueuedWalletTransaction(input types.PostTransactionInput) error {
+
+	txEntries, err := txService.accountService.ExtractTransactionEntries(input, [][]types.TransactionInputEntry{})
+
+	if err != nil {
+		return err
+	}
+
+	dbQueryTx := txService.accountBlockRepo.BeginTransaction()
+
+	for _, entry := range txEntries {
+		_, err := txService.createSingleLedgerTransaction(types.TransactionInput{
+			Entries: entry,
+		}, dbQueryTx)
+
+		if err != nil {
+			dbQueryTx.Rollback()
+			return err
+		}
+	}
+
+	dbQueryTx.Commit()
+
+	return nil
 }
 
 func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {

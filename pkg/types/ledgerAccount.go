@@ -139,3 +139,16 @@ type DependencyQueueItem struct {
 	LockId       string
 	Dependencies []string
 }
+
+type CreateWalletType struct {
+	Name    string
+	Rules   map[string]interface{}
+	OwnerId string
+}
+type CreateWallet struct {
+	Name           string
+	WalletType     string
+	AccountNumber  string
+	LedgerAccounts []string
+	OwnerId        string
+}
