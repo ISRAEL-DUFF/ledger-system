@@ -8,6 +8,7 @@ import (
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/types"
+	"github.com/israel-duff/ledger-system/pkg/types/datastructure"
 	"github.com/israel-duff/ledger-system/pkg/utils"
 )
 
@@ -222,9 +223,40 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 		accounts:   map[string]model.LedgerAccount{},
 		walletType: walletType.Rules,
 	}
+	setOfAccountLabels := walletType.AccountLabels()
+	createdAccountLabels := datastructure.NewSet[string]()
 
-	for index, account := range accounts {
-		walletData.accounts[fmt.Sprintf("A%d", (index+1))] = *account
+	for _, account := range accounts {
+		walletData.accounts[account.Label] = *account
+		createdAccountLabels.Add(account.Label)
+	}
+
+	uncreatedAccountLabels := setOfAccountLabels.Difference(*createdAccountLabels).Values()
+	generatedAccountNumbers := []string{}
+
+	for _, acctLable := range uncreatedAccountLabels {
+		// TODO: Create and attach the missing account to this wallet
+		acctName := fmt.Sprintf("A%s-%s", acctLable, wallet.AccountNumber)
+		acctNumber, _ := accountService.CreateLedgerAccount(acctName, wallet.OwnerID, func(claoi *CreateLedgerAccountOptionInput) {
+			claoi.LedgerAccountInput.Label = acctLable
+		})
+
+		newAccount, err := accountService.ledgerAccountRepo.FindByAccountNumber(acctNumber)
+
+		if err != nil {
+			return nil, err
+		}
+
+		walletData.accounts[newAccount.Label] = *newAccount
+		generatedAccountNumbers = append(generatedAccountNumbers, acctNumber)
+	}
+
+	if len(generatedAccountNumbers) > 0 {
+		err := accountService.walletRepo.AddLedgerAccounts(accountNumber, generatedAccountNumbers)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return walletData, nil

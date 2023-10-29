@@ -3,11 +3,13 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/types"
+	"github.com/israel-duff/ledger-system/pkg/utils"
 )
 
 type IWalletRepository interface {
@@ -15,7 +17,8 @@ type IWalletRepository interface {
 	Create(input types.CreateWallet) (*model.Wallet, error)
 	FindById(id string) (*model.Wallet, error)
 	FindByAccountNumber(accountNumber string) (*model.Wallet, error)
-	// FindAllByBlockId(blockId string) ([]*model.JournalEntry, error)
+	Update(data *model.Wallet) error
+	AddLedgerAccounts(accountNumber string, accounts []string) error
 }
 
 type WalletRepository struct {
@@ -84,4 +87,58 @@ func (walletRepo *WalletRepository) FindByAccountNumber(accountNumber string) (*
 	}
 
 	return w, nil
+}
+
+func (ledger *WalletRepository) Update(data *model.Wallet) error {
+	if data.ID == "" {
+		return errors.New("unable to update wallet data without primary ID")
+	}
+
+	wallet := ledger.dbQuery.Wallet.WithContext(context.Background())
+
+	if err := wallet.Save(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (walletRepo *WalletRepository) AddLedgerAccounts(accountNumber string, accounts []string) error {
+	wallet, err := walletRepo.FindByAccountNumber(accountNumber)
+
+	if err != nil {
+		return err
+	}
+
+	var ledgerAccounts []string
+
+	err = json.Unmarshal([]byte(wallet.LedgerAccounts), &ledgerAccounts)
+
+	if err != nil {
+		return err
+	}
+
+	for _, acct := range accounts {
+		_, exists := utils.GetArrayItemIndex[string](acct, ledgerAccounts)
+
+		if !exists {
+			ledgerAccounts = append(ledgerAccounts, acct)
+		}
+	}
+
+	jsonStr, err := json.Marshal(ledgerAccounts)
+
+	if err != nil {
+		return err
+	}
+
+	wallet.LedgerAccounts = string(jsonStr)
+	err = walletRepo.Update(wallet)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

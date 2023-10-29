@@ -9,6 +9,7 @@ import (
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/types"
+	"github.com/israel-duff/ledger-system/pkg/types/datastructure"
 )
 
 type IWalletTypeRepository interface {
@@ -128,4 +129,15 @@ func (walletType *WalletType) HasEvent(eventName string) bool {
 	}
 
 	return false
+}
+
+func (walletType *WalletType) AccountLabels() *datastructure.Set[string] {
+	accountSet := datastructure.NewSet[string]()
+
+	for _, evt := range walletType.Rules {
+		accountSet.Add(evt.Rule.Credit)
+		accountSet.Add(evt.Rule.Debit)
+	}
+
+	return accountSet
 }
