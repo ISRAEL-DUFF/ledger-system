@@ -79,7 +79,8 @@ func (txService *TransactionService) CreateLedgerTransaction(input types.Transac
 
 		if entry.Type == types.DEBIT {
 			if account.Label == "A1" && account.Balance < entry.Amount {
-				panic("Insufficient fund on account " + entry.AccountNumber)
+				// panic("Insufficient fund on account " + entry.AccountNumber)
+				return types.TransactionResponse{}, errors.New("Insufficient fund on account " + entry.AccountNumber)
 			}
 		}
 
@@ -141,7 +142,8 @@ func (txService *TransactionService) createSingleLedgerTransaction(input types.T
 
 		if entry.Type == types.DEBIT {
 			if account.Label == "A1" && account.Balance < entry.Amount {
-				panic("Insufficient fund on account " + entry.AccountNumber)
+				// panic("Insufficient fund on account " + entry.AccountNumber)
+				return types.TransactionResponse{}, errors.New("Insufficient fund on account " + entry.AccountNumber)
 			}
 		}
 
@@ -158,7 +160,7 @@ func (txService *TransactionService) createSingleLedgerTransaction(input types.T
 	updateErr := txRepo.UpdateStatus(transaction.ID, types.TRANSACTION_APPROVED)
 
 	if updateErr != nil {
-		dbQueryTx.Rollback()
+		return types.TransactionResponse{}, updateErr
 	}
 
 	return types.TransactionResponse{
@@ -188,6 +190,8 @@ func (txService *TransactionService) PostQueuedWalletTransaction(input types.Pos
 
 	dbQueryTx := txService.accountBlockRepo.BeginTransaction()
 
+	fmt.Println(txEntries)
+
 	for _, entry := range txEntries {
 		_, err := txService.createSingleLedgerTransaction(types.TransactionInput{
 			Entries: entry,
@@ -214,14 +218,14 @@ func (txService *TransactionService) postTransactionToBlock(entry types.Transact
 
 	journalEntryRepo := txService.journalRepo.WithTransaction(dbQueryTx)
 	_, createErr := journalEntryRepo.Create(types.CreateJournalEntry{
-		Amount:         entry.Amount,
-		Type:           entry.Type,
-		BlockId:        block.ID,
-		TransactionId:  transactionId,
-		AccountNumber:  accountNumber,
-		Memo:           entry.Memo,
-		OwnerId:        entry.OwnerId,
-		OrganizationId: entry.OrganizationId,
+		Amount:        entry.Amount,
+		Type:          entry.Type,
+		BlockId:       block.ID,
+		TransactionId: transactionId,
+		AccountNumber: accountNumber,
+		Memo:          entry.Memo,
+		OwnerId:       entry.OwnerId,
+		// OrganizationId: entry.OrganizationId,
 	})
 
 	if createErr != nil {

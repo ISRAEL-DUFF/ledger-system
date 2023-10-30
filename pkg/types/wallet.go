@@ -19,7 +19,7 @@ type WalletRuleType struct {
 }
 
 type PostTransactionInput struct {
-	EventName     string                 `json:"eventName"`
-	AccountNumber string                 `json:"accountNumber"`
-	MetaData      map[string]interface{} `json:"metaData"`
+	EventName     string                 `json:"eventName" validate:"required"`
+	AccountNumber string                 `json:"accountNumber" validate:"required"`
+	MetaData      map[string]interface{} `json:"metaData" validate:"required"`
 }

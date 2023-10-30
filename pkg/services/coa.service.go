@@ -15,7 +15,7 @@ type CoaService struct {
 type ICoaService interface {
 	CreateAccount(input types.CreateCoaAccount) (id string, accountNumber string)
 	FindByName(accountName string) (*types.ChartOfAccount, error)
-	FindByAccountNumber(accountNumber string)
+	FindByAccountNumber(accountNumber string) (*types.ChartOfAccount, error)
 	ListAll() ([]*types.ChartOfAccount, error)
 }
 

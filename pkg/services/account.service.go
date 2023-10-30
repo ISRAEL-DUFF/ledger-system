@@ -21,6 +21,10 @@ type IAccountService interface {
 	InitializeNewBlock(accountNumber string, dbQueryTx types.IDBTransaction) *types.AccountRepresentation
 	AccountStatus(mainAccountNumber string) *types.AccountStatus
 	ExtractTransactionEntries(input types.PostTransactionInput, entryList [][]types.TransactionInputEntry) ([][]types.TransactionInputEntry, error)
+	CreateWalletType(ownerId string, name string) (*model.WalletType, error)
+	CreateWallet(ownerId string, walletTypeId string) *Wallet
+	ListWalletTypes(ownerId string) ([]*model.WalletType, error)
+	GetWalletByAccountNumber(accountNumber string) (*Wallet, error)
 }
 
 type AccountService struct {
@@ -33,8 +37,15 @@ type AccountService struct {
 }
 
 type Wallet struct {
-	accounts   map[string]model.LedgerAccount
-	walletType []types.WalletRuleType
+	accounts map[string]model.LedgerAccount
+	// walletType []types.WalletRuleType
+	walletType WalletTypeStructure
+}
+
+type WalletTypeStructure struct {
+	ID     string                 `json:"id"`
+	Name   string                 `json:"name"`
+	Events []types.WalletRuleType `json:"events"`
 }
 
 type CreateLedgerAccountOptionInput struct {
@@ -189,7 +200,11 @@ func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId 
 		accounts: map[string]model.LedgerAccount{
 			"A1": *account,
 		},
-		walletType: walletType.Rules,
+		walletType: WalletTypeStructure{
+			Name:   walletType.Name,
+			ID:     walletTypeId,
+			Events: walletType.Rules,
+		},
 	}
 
 	return wallet
@@ -220,8 +235,13 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 	}
 
 	walletData := &Wallet{
-		accounts:   map[string]model.LedgerAccount{},
-		walletType: walletType.Rules,
+		accounts: map[string]model.LedgerAccount{},
+		// walletType: walletType.Rules,
+		walletType: WalletTypeStructure{
+			Name:   walletType.Name,
+			ID:     wallet.Type,
+			Events: walletType.Rules,
+		},
 	}
 	setOfAccountLabels := walletType.AccountLabels()
 	createdAccountLabels := datastructure.NewSet[string]()
@@ -270,8 +290,9 @@ func (accountService *AccountService) CreateWalletType(ownerId string, name stri
 	}
 
 	walletType, err := accountService.walletTypeRepo.Create(types.CreateWalletType{
-		Name:  name,
-		Rules: typeRule,
+		Name:    name,
+		Rules:   typeRule,
+		OwnerId: ownerId,
 	})
 
 	if err != nil {
@@ -279,6 +300,16 @@ func (accountService *AccountService) CreateWalletType(ownerId string, name stri
 	}
 
 	return walletType, nil
+}
+
+func (accountService *AccountService) ListWalletTypes(ownerId string) ([]*model.WalletType, error) {
+	wt, err := accountService.walletTypeRepo.FindByOwnerId(ownerId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return wt, nil
 }
 
 func (accountService *AccountService) GetAccountPairs(mainAccountNumber string) *types.AccountPairs {
@@ -464,12 +495,15 @@ func (accountService *AccountService) AccountStatus(mainAccountNumber string) *t
 
 func (accountService *AccountService) ExtractTransactionEntries(input types.PostTransactionInput, entryList [][]types.TransactionInputEntry) ([][]types.TransactionInputEntry, error) {
 	amountData, amtExists := input.MetaData["amount"]
+	memoData := input.MetaData["memo"]
 
 	if !amtExists {
 		return nil, errors.New("amount is missing in meta data")
 	}
 
-	amount := amountData.(int)
+	amountFloat := amountData.(float64)
+	amount := int(amountFloat)
+	memo := memoData.(string)
 
 	wallet, err := accountService.GetWalletByAccountNumber(input.AccountNumber)
 
@@ -484,29 +518,30 @@ func (accountService *AccountService) ExtractTransactionEntries(input types.Post
 	}
 
 	postRule := walletRuleType.Rule
-	// TODO: this debit / credit account needs to be stored like: ACCOUNT_LABEL:ACCOUNT_NUMBER (e.g A1:2938473843, A2:3948372834, etc)
-	debitAccount := postRule.Debit
-	creditAccount := postRule.Credit
+	debitAccountLabel := postRule.Debit
+	creditAccountLabel := postRule.Credit
+	debitAccount := wallet.accounts[debitAccountLabel]
+	creditAccount := wallet.accounts[creditAccountLabel]
 
 	txEntries := []types.TransactionInputEntry{
 		{
 			TransactionEntry: types.TransactionEntry{
-				AccountNumber: creditAccount,
+				AccountNumber: creditAccount.AccountNumber,
 				Amount:        amount,
 				Type:          types.CREDIT,
 			},
-			Memo:    "",
-			OwnerId: "",
+			Memo:    memo,
+			OwnerId: creditAccount.OwnerID,
 		},
 
 		{
 			TransactionEntry: types.TransactionEntry{
-				AccountNumber: debitAccount,
+				AccountNumber: debitAccount.AccountNumber,
 				Amount:        amount,
 				Type:          types.DEBIT,
 			},
-			Memo:    "",
-			OwnerId: "",
+			Memo:    memo,
+			OwnerId: debitAccount.OwnerID,
 		},
 	}
 
@@ -514,8 +549,14 @@ func (accountService *AccountService) ExtractTransactionEntries(input types.Post
 
 	if walletRuleType.EmitRules != nil {
 		for _, emitRule := range walletRuleType.EmitRules {
+			toAccountNum := input.MetaData[emitRule.To].(string)
+
+			if toAccountNum == "" {
+				return nil, errors.New("invalid to-account number")
+			}
+
 			l, er := accountService.ExtractTransactionEntries(types.PostTransactionInput{
-				AccountNumber: emitRule.To,
+				AccountNumber: toAccountNum,
 				EventName:     emitRule.Event,
 				MetaData:      input.MetaData,
 			}, entryList)
@@ -532,11 +573,19 @@ func (accountService *AccountService) ExtractTransactionEntries(input types.Post
 }
 
 func (wallet *Wallet) GetWalletRuleType(eventName string) (*types.WalletRuleType, bool) {
-	for _, evt := range wallet.walletType {
+	for _, evt := range wallet.walletType.Events {
 		if evt.Event == eventName {
 			return &evt, true
 		}
 	}
 
 	return nil, false
+}
+
+func (wallet *Wallet) GetWalletType() WalletTypeStructure {
+	return wallet.walletType
+}
+
+func (wallet *Wallet) GetAccounts() map[string]model.LedgerAccount {
+	return wallet.accounts
 }

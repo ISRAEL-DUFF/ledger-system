@@ -30,10 +30,14 @@ func NewLedgerAccountRepository() *LedgerAccountRepository {
 	}
 }
 
-func (ledger *LedgerAccountRepository) WithTransaction(queryTx *dao.QueryTx) *LedgerAccountRepository {
+func (ledger *LedgerAccountRepository) WithTransaction(queryTx types.IDBTransaction) ILedgerAccount {
 	return &LedgerAccountRepository{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (ledger *LedgerAccountRepository) BeginTransaction() types.IDBTransaction {
+	return ledger.dbQuery.Begin()
 }
 
 func (ledger *LedgerAccountRepository) Create(input types.CreateLedgerAccount) (*model.LedgerAccount, error) {

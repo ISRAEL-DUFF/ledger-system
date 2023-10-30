@@ -27,10 +27,14 @@ func NewLedgerTransactionRepository() *LedgerTransactionRepository {
 	}
 }
 
-func (tx *LedgerTransactionRepository) WithTransaction(queryTx *dao.QueryTx) *LedgerTransactionRepository {
+func (tx *LedgerTransactionRepository) WithTransaction(queryTx types.IDBTransaction) ILedgerTransactionRepository {
 	return &LedgerTransactionRepository{
-		dbQuery: queryTx.Query,
+		dbQuery: queryTx.(*dao.QueryTx).Query,
 	}
+}
+
+func (tx *LedgerTransactionRepository) BeginTransaction() types.IDBTransaction {
+	return tx.dbQuery.Begin()
 }
 
 func (tx *LedgerTransactionRepository) Create(input types.CreateLedgerTransaction) (*model.LedgerTransaction, error) {
@@ -65,7 +69,7 @@ func (tx *LedgerTransactionRepository) UpdateStatus(id string, txStatus types.Tr
 	dbQuery := tx.dbQuery
 	ledgerTx := dbQuery.LedgerTransaction.WithContext(context.Background())
 
-	if _, err := ledgerTx.Update(dbQuery.LedgerTransaction.ID.Eq(id), txStatus); err != nil {
+	if _, err := ledgerTx.Where(dbQuery.LedgerTransaction.ID.Eq(id)).Update(dbQuery.LedgerTransaction.Status, txStatus); err != nil {
 		return err
 	}
 

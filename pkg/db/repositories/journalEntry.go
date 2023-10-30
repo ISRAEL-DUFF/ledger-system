@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
@@ -42,18 +43,26 @@ func (journalEntryRepo *JournalEntryRepository) Create(input types.CreateJournal
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
 	createdJournalEntry := &model.JournalEntry{
-		Amount:         float64(input.Amount),
-		Type:           string(input.Type),
-		BlockID:        input.BlockId,
-		TransactionID:  input.TransactionId,
-		Name:           input.Name,
-		Memo:           input.Memo,
-		OwnerID:        input.OwnerId,
-		OrganizationID: input.OrganizationId,
+		Amount:        float64(input.Amount),
+		Type:          string(input.Type),
+		BlockID:       input.BlockId,
+		TransactionID: input.TransactionId,
+		Name:          input.Name,
+		Memo:          input.Memo,
+		OwnerID:       input.OwnerId,
+		// OrganizationID: input.OrganizationId,
+		OrganizationID: "d879361c-53a9-4fda-9c23-baefcecb1753",
 		AccountNumber:  input.AccountNumber,
 	}
 
 	if err := journalEntry.Create(createdJournalEntry); err != nil {
+		fmt.Println("INPUT>>>>>>>")
+		fmt.Println("BlockID:" + input.BlockId)
+		fmt.Println("TransactionID:" + input.TransactionId)
+		fmt.Println("OwnerID:" + input.OwnerId)
+		fmt.Println("OrganizationID:" + input.OrganizationId)
+		fmt.Println(err)
+		fmt.Println(">>>>>>>>>>>>")
 		return nil, err
 	}
 

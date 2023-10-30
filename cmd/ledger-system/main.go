@@ -40,6 +40,7 @@ func main() {
 	// Register Routes here
 	routes.RegisterAuthRoutes(&r.RouterGroup)
 	routes.RegisterCOARoutes(&r.RouterGroup)
+	routes.RegisterWalletRoutes(&r.RouterGroup)
 
 	r.Run(":5050")
 

@@ -17,6 +17,7 @@ type IWalletTypeRepository interface {
 	Create(input types.CreateWalletType) (*model.WalletType, error)
 	FindById(id string) (*model.WalletType, error)
 	GetWalletRulesByTypeId(id string) *WalletType
+	FindByOwnerId(id string) ([]*model.WalletType, error)
 }
 
 type WalletTypeRepository struct {
@@ -92,6 +93,19 @@ func (walletTypeRepo *WalletTypeRepository) FindById(id string) (*model.WalletTy
 	WalletType := dbInstance.WalletType.WithContext(context.Background())
 
 	w, err := WalletType.Where(dbInstance.WalletType.ID.Eq(id)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
+func (walletTypeRepo *WalletTypeRepository) FindByOwnerId(id string) ([]*model.WalletType, error) {
+	dbInstance := walletTypeRepo.dbQuery
+	WalletType := dbInstance.WalletType.WithContext(context.Background())
+
+	w, err := WalletType.Where(dbInstance.WalletType.OwnerID.Eq(id)).Find()
 
 	if err != nil {
 		return nil, err
