@@ -25,6 +25,7 @@ type IAccountService interface {
 	CreateWallet(ownerId string, walletTypeId string) *Wallet
 	ListWalletTypes(ownerId string) ([]*model.WalletType, error)
 	GetWalletByAccountNumber(accountNumber string) (*Wallet, error)
+	ListUserWallets(ownerId string) ([]*Wallet, error)
 }
 
 type AccountService struct {
@@ -280,6 +281,83 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 	}
 
 	return walletData, nil
+}
+
+func (accountService *AccountService) ListUserWallets(ownerId string) ([]*Wallet, error) {
+	wallets, err := accountService.walletRepo.FindAllByOwnerId(ownerId)
+
+	if err != nil {
+		panic("invalid wallet account number")
+	}
+
+	walletList := []*Wallet{}
+
+	for _, wallet := range wallets {
+		walletType := accountService.walletTypeRepo.GetWalletRulesByTypeId(wallet.Type)
+		jsonStr := wallet.LedgerAccounts
+
+		var ledgerAccounts []string
+
+		err = json.Unmarshal([]byte(jsonStr), &ledgerAccounts)
+
+		if err != nil {
+			return nil, err
+		}
+
+		accounts, aErr := accountService.ledgerAccountRepo.FindAllByAccountNumbers(ledgerAccounts)
+
+		if aErr != nil {
+			return nil, aErr
+		}
+
+		walletData := &Wallet{
+			accounts: map[string]model.LedgerAccount{},
+			walletType: WalletTypeStructure{
+				Name:   walletType.Name,
+				ID:     wallet.Type,
+				Events: walletType.Rules,
+			},
+		}
+		setOfAccountLabels := walletType.AccountLabels()
+		createdAccountLabels := datastructure.NewSet[string]()
+
+		for _, account := range accounts {
+			walletData.accounts[account.Label] = *account
+			createdAccountLabels.Add(account.Label)
+		}
+
+		uncreatedAccountLabels := setOfAccountLabels.Difference(*createdAccountLabels).Values()
+		generatedAccountNumbers := []string{}
+
+		for _, acctLable := range uncreatedAccountLabels {
+			// TODO: Create and attach the missing account to this wallet
+			acctName := fmt.Sprintf("A%s-%s", acctLable, wallet.AccountNumber)
+			acctNumber, _ := accountService.CreateLedgerAccount(acctName, wallet.OwnerID, func(claoi *CreateLedgerAccountOptionInput) {
+				claoi.LedgerAccountInput.Label = acctLable
+			})
+
+			newAccount, err := accountService.ledgerAccountRepo.FindByAccountNumber(acctNumber)
+
+			if err != nil {
+				return nil, err
+			}
+
+			walletData.accounts[newAccount.Label] = *newAccount
+			generatedAccountNumbers = append(generatedAccountNumbers, acctNumber)
+		}
+
+		if len(generatedAccountNumbers) > 0 {
+			err := accountService.walletRepo.AddLedgerAccounts(wallet.AccountNumber, generatedAccountNumbers)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		walletList = append(walletList, walletData)
+	}
+
+	return walletList, nil
 }
 
 func (accountService *AccountService) CreateWalletType(ownerId string, name string) (*model.WalletType, error) {

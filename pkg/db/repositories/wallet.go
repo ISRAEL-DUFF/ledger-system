@@ -17,6 +17,7 @@ type IWalletRepository interface {
 	Create(input types.CreateWallet) (*model.Wallet, error)
 	FindById(id string) (*model.Wallet, error)
 	FindByAccountNumber(accountNumber string) (*model.Wallet, error)
+	FindAllByOwnerId(ownerId string) ([]*model.Wallet, error)
 	Update(data *model.Wallet) error
 	AddLedgerAccounts(accountNumber string, accounts []string) error
 }
@@ -81,6 +82,19 @@ func (walletRepo *WalletRepository) FindByAccountNumber(accountNumber string) (*
 	wallet := dbInstance.Wallet.WithContext(context.Background())
 
 	w, err := wallet.Where(dbInstance.Wallet.AccountNumber.Eq(accountNumber)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
+func (walletRepo *WalletRepository) FindAllByOwnerId(ownerId string) ([]*model.Wallet, error) {
+	dbInstance := walletRepo.dbQuery
+	wallet := dbInstance.Wallet.WithContext(context.Background())
+
+	w, err := wallet.Where(dbInstance.Wallet.OwnerID.Eq(ownerId)).Find()
 
 	if err != nil {
 		return nil, err

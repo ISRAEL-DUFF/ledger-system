@@ -116,6 +116,34 @@ func (walletController *WalletController) GetWalletByAccountNumber(c *gin.Contex
 
 }
 
+func (walletController *WalletController) ListUserWalllets(c *gin.Context) {
+	ownerId, exists := c.Params.Get("ownerId")
+
+	if !exists {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "unknown ownerId")
+		return
+	}
+
+	wallets, err := walletController.walletService.ListUserWallets(ownerId)
+
+	if err != nil {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	walletDtoList := []WalletDto{}
+
+	for _, w := range wallets {
+		walletDtoList = append(walletDtoList, WalletDto{
+			Accounts:   w.GetAccounts(),
+			WalletType: w.GetWalletType(),
+		})
+	}
+
+	httpUtil.SuccessResponseWithData(c, http.StatusAccepted, walletDtoList)
+
+}
+
 func (walletController *WalletController) GetLedgerAccount(c *gin.Context) {
 	accountNumber, exists := c.Params.Get("accountNumber")
 
