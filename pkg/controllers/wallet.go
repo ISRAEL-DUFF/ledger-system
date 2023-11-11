@@ -17,14 +17,20 @@ type CreateWalletTypePayload struct {
 	OwnerId string `json:"ownerId"`
 }
 
+type UpdateWalletTypePayload struct {
+	TypeId string                 `json:"id"`
+	Rules  map[string]interface{} `json:"rules"`
+}
+
 type CreateWalletPayload struct {
 	WalletType string `json:"walletType"`
 	OwnerId    string `json:"ownerId"`
 }
 
 type WalletDto struct {
-	Accounts   any `json:"accounts"`
-	WalletType any `json:"type"`
+	Accounts   any     `json:"accounts"`
+	WalletType any     `json:"type"`
+	Balance    float32 `json:"balance"`
 }
 
 type WalletController struct {
@@ -94,6 +100,25 @@ func (walletController *WalletController) CreateWalletType(c *gin.Context) {
 	httpUtil.SuccessResponseWithData(c, http.StatusCreated, r)
 }
 
+func (walletController *WalletController) UpdateWalletType(c *gin.Context) {
+	var payload UpdateWalletTypePayload
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		fmt.Println(err)
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "Invalid payload!!!")
+		return
+	}
+
+	err := walletController.walletService.UpdateWalletType(payload.TypeId, payload.Rules)
+
+	if err != nil {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	httpUtil.SuccessResponseWithMessage(c, http.StatusCreated, "Wallet Type Updated!!!")
+}
+
 func (walletController *WalletController) GetWalletByAccountNumber(c *gin.Context) {
 	accountNumber, exists := c.Params.Get("accountNumber")
 
@@ -112,6 +137,7 @@ func (walletController *WalletController) GetWalletByAccountNumber(c *gin.Contex
 	httpUtil.SuccessResponseWithData(c, http.StatusAccepted, WalletDto{
 		Accounts:   wallet.GetAccounts(),
 		WalletType: wallet.GetWalletType(),
+		Balance:    wallet.GetBalance(),
 	})
 
 }
@@ -137,6 +163,7 @@ func (walletController *WalletController) ListUserWalllets(c *gin.Context) {
 		walletDtoList = append(walletDtoList, WalletDto{
 			Accounts:   w.GetAccounts(),
 			WalletType: w.GetWalletType(),
+			Balance:    w.GetBalance(),
 		})
 	}
 

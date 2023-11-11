@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
 	"github.com/israel-duff/ledger-system/pkg/db/model"
@@ -18,6 +19,7 @@ type IWalletTypeRepository interface {
 	FindById(id string) (*model.WalletType, error)
 	GetWalletRulesByTypeId(id string) *WalletType
 	FindByOwnerId(id string) ([]*model.WalletType, error)
+	UpdateWalletType(id string, typeObj map[string]interface{}) error
 }
 
 type WalletTypeRepository struct {
@@ -26,8 +28,8 @@ type WalletTypeRepository struct {
 
 // Wallet type datastructure
 type WalletType struct {
-	Name  string                 `json:"name"`
-	Rules []types.WalletRuleType `json:"rules"`
+	Name  string                 `json:"name" validate:"required"`
+	Rules []types.WalletRuleType `json:"rules" validate:"required,dive,required"`
 }
 
 func NewWalletType(input map[string]any) *WalletType {
@@ -135,6 +137,49 @@ func (walletTypeRepo *WalletTypeRepository) GetWalletRulesByTypeId(id string) *W
 
 }
 
+func (walletTypeRepo *WalletTypeRepository) UpdateWalletType(id string, typeObj map[string]interface{}) error {
+	walletType := NewWalletType(typeObj)
+	validatorInstance := validator.New()
+
+	fmt.Println(walletType)
+
+	err := validatorInstance.Struct(walletType)
+
+	if err != nil {
+		return err
+	}
+
+	err = walletType.Validate()
+
+	if err != nil {
+		return err
+	}
+
+	walletTypeDbb := walletTypeRepo.dbQuery.WithContext(context.Background())
+	walletTypeDb := walletTypeDbb.WalletType
+
+	walletTypeModel, err := walletTypeRepo.FindById(id)
+
+	if err != nil {
+		return err
+	}
+
+	walletTypeStr, err := json.Marshal(typeObj)
+
+	if err != nil {
+		return err
+	}
+
+	walletTypeModel.Rules = string(walletTypeStr)
+	walletTypeModel.Name = typeObj["name"].(string)
+
+	if updateErr := walletTypeDb.Save(walletTypeModel); updateErr != nil {
+		return updateErr
+	}
+
+	return nil
+}
+
 func (walletType *WalletType) HasEvent(eventName string) bool {
 	for _, evt := range walletType.Rules {
 		if evt.Event == eventName {
@@ -154,4 +199,16 @@ func (walletType *WalletType) AccountLabels() *datastructure.Set[string] {
 	}
 
 	return accountSet
+}
+
+func (walletType *WalletType) Validate() error {
+	for _, wt := range walletType.Rules {
+		err := wt.Validate()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

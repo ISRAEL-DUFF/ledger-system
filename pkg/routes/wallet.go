@@ -15,6 +15,7 @@ func RegisterWalletRoutes(r *gin.RouterGroup) {
 	walletRoutes.GET("/list/:ownerId", walletController.ListUserWalllets)
 	walletRoutes.GET("/ledger-account/:accountNumber", walletController.GetLedgerAccount)
 	walletRoutes.POST("/type/create", walletController.CreateWalletType)
-	walletRoutes.GET("/type/list", walletController.ListWalletTypes)
+	walletRoutes.POST("/type/update", walletController.UpdateWalletType)
+	walletRoutes.GET("/type/list/:ownerId", walletController.ListWalletTypes)
 	walletRoutes.POST("/transaction/post", walletController.PostTransaction)
 }

@@ -67,3 +67,33 @@ The next step is to generate models and data access objects from the database us
 ~/go/bin/gentool -dsn "postgresql://postgres:postgres@localhost:5432/accounting_ledger?connect_timeout=10&sslmode=disable" -db postgres -outPath "pkg/db/dao"
 ```
 
+
+
+# Ledger System Explorer Dashboard App
+The ledger system will feature a dashboard application that lets users explore / manage their ledger.
+The following are the features of this app:
+
+1. Manage Wallet Types
+  > - Create Wallet Types
+  > - Edit Wallet types (updating the rules of the wallet type)
+  > - List wallet types
+
+2. List all wallets in an organization
+3. Show details of a wallet
+  > - List the ledger accounts in a wallet
+  > - Show the number of transaction blocks for an account in a wallet
+  > - List the transaction blocks for an account in a wallet
+  > - List the transactions contained in an account block
+  > - List account transaction statements for an account in a wallet
+4. Dashboard Metrics
+> - Total Number of wallet types (owned by the organization)
+> - Total Number of wallets owned by the organization
+> - Total Number of transaction blocks created for the organization
+> - Total Number of transactions
+5. Wallet Type metrics
+> - Total Number of wallets
+> - Total Number of transaction blocks
+> - Total Number of transactions
+
+
+

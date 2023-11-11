@@ -26,6 +26,7 @@ type IAccountService interface {
 	ListWalletTypes(ownerId string) ([]*model.WalletType, error)
 	GetWalletByAccountNumber(accountNumber string) (*Wallet, error)
 	ListUserWallets(ownerId string) ([]*Wallet, error)
+	UpdateWalletType(typeId string, walletTypeData map[string]interface{}) error
 }
 
 type AccountService struct {
@@ -38,9 +39,9 @@ type AccountService struct {
 }
 
 type Wallet struct {
-	accounts map[string]model.LedgerAccount
-	// walletType []types.WalletRuleType
+	accounts   map[string]model.LedgerAccount
 	walletType WalletTypeStructure
+	balance    float32
 }
 
 type WalletTypeStructure struct {
@@ -235,6 +236,8 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 		return nil, aErr
 	}
 
+	balance := accountService.AccountBalance(accountNumber)
+
 	walletData := &Wallet{
 		accounts: map[string]model.LedgerAccount{},
 		// walletType: walletType.Rules,
@@ -243,6 +246,7 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 			ID:     wallet.Type,
 			Events: walletType.Rules,
 		},
+		balance: float32(balance),
 	}
 	setOfAccountLabels := walletType.AccountLabels()
 	createdAccountLabels := datastructure.NewSet[string]()
@@ -310,6 +314,8 @@ func (accountService *AccountService) ListUserWallets(ownerId string) ([]*Wallet
 			return nil, aErr
 		}
 
+		balance := accountService.AccountBalance(wallet.AccountNumber)
+
 		walletData := &Wallet{
 			accounts: map[string]model.LedgerAccount{},
 			walletType: WalletTypeStructure{
@@ -317,6 +323,7 @@ func (accountService *AccountService) ListUserWallets(ownerId string) ([]*Wallet
 				ID:     wallet.Type,
 				Events: walletType.Rules,
 			},
+			balance: float32(balance),
 		}
 		setOfAccountLabels := walletType.AccountLabels()
 		createdAccountLabels := datastructure.NewSet[string]()
@@ -378,6 +385,16 @@ func (accountService *AccountService) CreateWalletType(ownerId string, name stri
 	}
 
 	return walletType, nil
+}
+
+func (accountService *AccountService) UpdateWalletType(typeId string, walletTypeData map[string]interface{}) error {
+	err := accountService.walletTypeRepo.UpdateWalletType(typeId, walletTypeData)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (accountService *AccountService) ListWalletTypes(ownerId string) ([]*model.WalletType, error) {
@@ -650,6 +667,8 @@ func (accountService *AccountService) ExtractTransactionEntries(input types.Post
 	return entryList, nil
 }
 
+// Wallet Methods
+
 func (wallet *Wallet) GetWalletRuleType(eventName string) (*types.WalletRuleType, bool) {
 	for _, evt := range wallet.walletType.Events {
 		if evt.Event == eventName {
@@ -666,4 +685,8 @@ func (wallet *Wallet) GetWalletType() WalletTypeStructure {
 
 func (wallet *Wallet) GetAccounts() map[string]model.LedgerAccount {
 	return wallet.accounts
+}
+
+func (wallet *Wallet) GetBalance() float32 {
+	return wallet.balance
 }
