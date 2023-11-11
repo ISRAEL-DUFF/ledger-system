@@ -1,30 +1,14 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 	config "github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/routes"
 
-	// models "github.com/israel-duff/ledger-system/pkg/models"
 	"github.com/israel-duff/ledger-system/pkg/db"
 )
 
 func main() {
-	// config.InitDatabaseConnection()
-	// models.MigrateUserTable()
-	fmt.Println("Hello world")
-
-	// user := models.UserModel{
-	// 	EmailAddress: "email1@gmail.com",
-	// 	PhoneNumber:  "09028473643",
-	// }
-
-	// user.Create()
-
-	// fmt.Printf("Use ID: %s", user.ID)
-
 	databaseObject, err := config.NewDBConnection()
 
 	if err != nil {
@@ -36,6 +20,19 @@ func main() {
 	r := gin.Default()
 
 	// TODO: use globle Middlewhare here
+	// r.Use(cors.New(cors.Config{
+	// 	// AllowOrigins:     []string{"http://localhost", "http://127.0.0.1"},
+	// 	AllowMethods:     []string{"PUT", "PATCH", "POST", "GET"},
+	// 	AllowHeaders:     []string{"Origin", ""},
+	// 	ExposeHeaders:    []string{"Content-Length"},
+	// 	AllowCredentials: true,
+	// 	AllowOriginFunc: func(origin string) bool {
+	// 		return origin != "https://github.com"
+	// 	},
+	// 	// MaxAge: 12 * time.Hour,
+	// }))
+
+	r.Use(corsMiddleware())
 
 	// Register Routes here
 	routes.RegisterAuthRoutes(&r.RouterGroup)
@@ -44,4 +41,19 @@ func main() {
 
 	r.Run(":5050")
 
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }
