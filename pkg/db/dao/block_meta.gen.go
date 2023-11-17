@@ -33,7 +33,7 @@ func newBlockMetum(db *gorm.DB, opts ...gen.DOOption) blockMetum {
 	_blockMetum.DeletedAt = field.NewField(tableName, "deleted_at")
 	_blockMetum.AccountID = field.NewString(tableName, "account_id")
 	_blockMetum.BlockTxLimit = field.NewInt32(tableName, "block_tx_limit")
-	_blockMetum.TransactionTxID = field.NewString(tableName, "transaction_tx_id")
+	_blockMetum.TransitionTxID = field.NewString(tableName, "transition_tx_id")
 	_blockMetum.OpeningDate = field.NewString(tableName, "opening_date")
 	_blockMetum.ClosingDate = field.NewString(tableName, "closing_date")
 
@@ -45,16 +45,16 @@ func newBlockMetum(db *gorm.DB, opts ...gen.DOOption) blockMetum {
 type blockMetum struct {
 	blockMetumDo blockMetumDo
 
-	ALL             field.Asterisk
-	ID              field.String
-	CreatedAt       field.Time
-	UpdatedAt       field.Time
-	DeletedAt       field.Field
-	AccountID       field.String
-	BlockTxLimit    field.Int32
-	TransactionTxID field.String
-	OpeningDate     field.String
-	ClosingDate     field.String
+	ALL            field.Asterisk
+	ID             field.String
+	CreatedAt      field.Time
+	UpdatedAt      field.Time
+	DeletedAt      field.Field
+	AccountID      field.String
+	BlockTxLimit   field.Int32
+	TransitionTxID field.String
+	OpeningDate    field.String
+	ClosingDate    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -77,7 +77,7 @@ func (b *blockMetum) updateTableName(table string) *blockMetum {
 	b.DeletedAt = field.NewField(table, "deleted_at")
 	b.AccountID = field.NewString(table, "account_id")
 	b.BlockTxLimit = field.NewInt32(table, "block_tx_limit")
-	b.TransactionTxID = field.NewString(table, "transaction_tx_id")
+	b.TransitionTxID = field.NewString(table, "transition_tx_id")
 	b.OpeningDate = field.NewString(table, "opening_date")
 	b.ClosingDate = field.NewString(table, "closing_date")
 
@@ -113,7 +113,7 @@ func (b *blockMetum) fillFieldMap() {
 	b.fieldMap["deleted_at"] = b.DeletedAt
 	b.fieldMap["account_id"] = b.AccountID
 	b.fieldMap["block_tx_limit"] = b.BlockTxLimit
-	b.fieldMap["transaction_tx_id"] = b.TransactionTxID
+	b.fieldMap["transition_tx_id"] = b.TransitionTxID
 	b.fieldMap["opening_date"] = b.OpeningDate
 	b.fieldMap["closing_date"] = b.ClosingDate
 }

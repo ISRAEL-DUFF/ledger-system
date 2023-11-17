@@ -12,6 +12,7 @@ func RegisterWalletRoutes(r *gin.RouterGroup) {
 
 	walletRoutes.POST("/create", walletController.CreateWallet)
 	walletRoutes.GET("/get/:accountNumber", walletController.GetWalletByAccountNumber)
+	walletRoutes.GET("/status/:accountNumber", walletController.GetWalletStatus)
 	walletRoutes.GET("/list/:ownerId", walletController.ListUserWalllets)
 	walletRoutes.GET("/ledger-account/:accountNumber", walletController.GetLedgerAccount)
 	walletRoutes.POST("/type/create", walletController.CreateWalletType)

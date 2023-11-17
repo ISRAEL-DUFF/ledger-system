@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/israel-duff/ledger-system/pkg/db/model"
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/types"
+	"github.com/israel-duff/ledger-system/pkg/utils"
 )
 
 type ITransactionService interface {
@@ -142,12 +144,10 @@ func (txService *TransactionService) createSingleLedgerTransaction(input types.T
 
 		if entry.Type == types.DEBIT {
 			if account.Label == "A1" && account.Balance < entry.Amount {
-				// panic("Insufficient fund on account " + entry.AccountNumber)
 				return types.TransactionResponse{}, errors.New("Insufficient fund on account " + entry.AccountNumber)
 			}
 		}
 
-		// TODO: post transaction here
 		txService.postTransaction(entry, transaction.ID, *account, dbQueryTx)
 
 		treatedEntries[index] = types.TransactionEntry{
@@ -193,9 +193,17 @@ func (txService *TransactionService) PostQueuedWalletTransaction(input types.Pos
 	fmt.Println(txEntries)
 
 	for _, entry := range txEntries {
-		_, err := txService.createSingleLedgerTransaction(types.TransactionInput{
+		// _, err := txService.createSingleLedgerTransaction(types.TransactionInput{
+		// 	Entries: entry,
+		// }, dbQueryTx)
+
+		_, err := txService.txQ.Schedule(types.TransactionInput{
 			Entries: entry,
-		}, dbQueryTx)
+		}, func(resInput types.TransactionInput) (types.TransactionResponse, error) {
+			resp, er := txService.createSingleLedgerTransaction(resInput, dbQueryTx)
+
+			return resp, er
+		})
 
 		if err != nil {
 			dbQueryTx.Rollback()
@@ -206,6 +214,250 @@ func (txService *TransactionService) PostQueuedWalletTransaction(input types.Pos
 	dbQueryTx.Commit()
 
 	return nil
+}
+
+func (txService *TransactionService) FindTransactionBlockContaining(transactionDate int32) (types.BlockSearchStatus, *types.AccountBlockType) {
+	leftBlock, leftErr := txService.accountBlockRepo.FindByDate(transactionDate, "left")
+	rightBlock, rightErr := txService.accountBlockRepo.FindByDate(transactionDate, "right")
+
+	if leftErr != nil || rightErr != nil {
+		panic("error fetching blocks")
+	}
+
+	if leftBlock != nil && rightBlock != nil && rightBlock.ID == leftBlock.ID {
+		fmt.Printf("Found Block %s\n", rightBlock.ID)
+		return types.WITHIN_BLOCK, &types.AccountBlockType{
+			ID:                rightBlock.ID,
+			Status:            types.AccountBlockStatus(rightBlock.Status),
+			AccountID:         rightBlock.AccountID,
+			BlockSize:         rightBlock.BlockSize,
+			TransactionsCount: rightBlock.TransactionsCount,
+			CreatedAt:         rightBlock.CreatedAt.String(),
+		}
+	}
+
+	if leftBlock != nil && rightBlock != nil && rightBlock.ID != leftBlock.ID {
+		fmt.Println("No match Found returning RIGHT Block")
+		return types.WITHIN_BLOCK, &types.AccountBlockType{
+			ID:                rightBlock.ID,
+			Status:            types.AccountBlockStatus(rightBlock.Status),
+			AccountID:         rightBlock.AccountID,
+			BlockSize:         rightBlock.BlockSize,
+			TransactionsCount: rightBlock.TransactionsCount,
+			CreatedAt:         rightBlock.CreatedAt.String(),
+		}
+	}
+
+	if rightBlock != nil {
+		return types.RIGHT_ONLY, nil
+	}
+
+	if leftBlock != nil {
+		return types.LEFT_ONLY, nil
+	}
+
+	panic("error processing blocks")
+}
+
+func (txService *TransactionService) FindTransactionBlocks(accountID string, startDate, endDate int32) ([]types.AccountBlockType, error) {
+	listOfMetaInfo := []*model.BlockMetum{}
+	accountBlockIds := []string{}
+	var startBlock *types.AccountBlockType
+	var endBlock *types.AccountBlockType
+	accountBlocks := []types.AccountBlockType{}
+
+	if startDate == endDate {
+		startBlkStatus, startBlk := txService.FindTransactionBlockContaining(startDate)
+
+		if startBlk != nil {
+			return []types.AccountBlockType{
+				*startBlk,
+			}, nil
+		}
+
+		if startBlkStatus == types.LEFT_ONLY {
+			fmt.Println("Finding Last Active block")
+			startBllk, err := txService.accountBlockRepo.GetCurrentOpenBlock(accountID)
+
+			if err != nil {
+				return []types.AccountBlockType{}, err
+			}
+
+			if startBllk == nil {
+				return []types.AccountBlockType{}, errors.New("invalid block")
+			}
+
+			return []types.AccountBlockType{
+				{
+					ID:                startBllk.ID,
+					Status:            types.AccountBlockStatus(startBllk.Status),
+					AccountID:         startBllk.AccountID,
+					BlockSize:         startBllk.BlockSize,
+					TransactionsCount: startBllk.TransactionsCount,
+					CreatedAt:         startBllk.CreatedAt.String(),
+				},
+			}, nil
+		}
+	} else {
+		_, startBlockV := txService.FindTransactionBlockContaining(startDate)
+		_, endBlockV := txService.FindTransactionBlockContaining(endDate)
+		middleBlocks, err := txService.blockMetumRepo.FindAllBlockMetaInBetween(startDate, endDate)
+
+		if err != nil {
+			return []types.AccountBlockType{}, err
+		}
+
+		startBlock = startBlockV
+		endBlock = endBlockV
+
+		listOfMetaInfo = append(listOfMetaInfo, middleBlocks...)
+	}
+
+	for _, metaInfo := range listOfMetaInfo {
+		journals, err := txService.journalRepo.FindAllByTransactionId(metaInfo.TransitionTxID)
+
+		if err != nil {
+			return []types.AccountBlockType{}, err
+		}
+
+		if len(journals) != 2 {
+			return []types.AccountBlockType{}, errors.New("invalid transition transaction journal list")
+		}
+
+		if journals[0].Type != string(types.DEBIT) && journals[1].Type != string(types.DEBIT) {
+			return []types.AccountBlockType{}, errors.New("transition transaction journal must contain a debit and a credit entry")
+		}
+
+		if journals[0].Type == string(types.DEBIT) {
+			accountBlockIds = append(accountBlockIds, journals[0].BlockID)
+		} else {
+			accountBlockIds = append(accountBlockIds, journals[1].BlockID)
+		}
+	}
+
+	accountBlks, err := txService.accountBlockRepo.FindAllByIDs(accountBlockIds)
+
+	if err != nil {
+		return []types.AccountBlockType{}, err
+	}
+
+	if startBlock != nil {
+		accountBlocks = append(accountBlocks, *startBlock)
+	}
+
+	for _, acctBlk := range accountBlks {
+		accountBlocks = append(accountBlocks, types.AccountBlockType{
+			ID:                acctBlk.ID,
+			Status:            types.AccountBlockStatus(acctBlk.Status),
+			AccountID:         acctBlk.AccountID,
+			BlockSize:         acctBlk.BlockSize,
+			TransactionsCount: acctBlk.TransactionsCount,
+			CreatedAt:         acctBlk.CreatedAt.String(),
+		})
+	}
+
+	if endBlock != nil {
+		accountBlocks = append(accountBlocks, *endBlock)
+	}
+
+	return accountBlocks, nil
+}
+
+func (txService *TransactionService) ComputeBalanceInTransactionBlock(blockId string, stopDate int32) int {
+	journals, err := txService.journalRepo.FindAllByBlockId(blockId)
+
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := txService.accountBlockRepo.FindById(blockId)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if len(journals) == 0 {
+		return 0
+	}
+
+	if stopDate < int32(journals[0].CreatedAt.UnixMilli()) {
+		return 0
+	}
+
+	balance := 0
+
+	if journals[0].Type == string(types.CREDIT) {
+		balance = int(journals[0].Amount)
+	} else {
+		balance -= int(journals[0].Amount)
+	}
+
+	startIndex := 1
+	n := len(journals) - 1
+
+	if block.Status == string(types.OPEN) {
+		startIndex = 0
+		n = len(journals)
+		balance = 0
+	}
+
+	for i := startIndex; i < n; i++ {
+		if int32(journals[i].CreatedAt.UnixMilli()) > stopDate {
+			return balance
+		}
+
+		if journals[i].Type == string(types.DEBIT) {
+			balance -= int(journals[i].Amount)
+		} else {
+			balance = int(journals[i].Amount)
+		}
+	}
+
+	return balance
+}
+
+func (txService *TransactionService) GetOpeningBalance(blockId string) int {
+	journals, err := txService.journalRepo.FindAllByBlockId(blockId)
+
+	if err != nil {
+		return 0
+	}
+
+	if len(journals) == 0 {
+		return 0
+	}
+
+	return int(journals[0].Amount)
+}
+
+func (txService *TransactionService) GetJournalEntries(blockId string) []*model.JournalEntry {
+	journals, err := txService.journalRepo.FindAllByBlockId(blockId)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return journals
+}
+
+func (txService *TransactionService) AccountBalanceAsAt(transactionDate int32, accountID string) int {
+	transactionBlocks, err := txService.FindTransactionBlocks(accountID, transactionDate, transactionDate)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if len(transactionBlocks) == 0 {
+		panic("no account balance for the specified date!!!")
+	}
+
+	balance := txService.ComputeBalanceInTransactionBlock(transactionBlocks[len(transactionBlocks)-1].ID, transactionDate)
+
+	return balance
+}
+
+func (txService *TransactionService) AccountBlanceAtEndOfDay(transactioinDate int32, accountID string) int {
+	return txService.AccountBalanceAsAt(int32(utils.EndOfDay(int64(transactioinDate))), accountID)
 }
 
 func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {
@@ -262,6 +514,8 @@ func (txService *TransactionService) spawnNewAccountBlock(account *types.Account
 	journalType2 := types.CREDIT
 	memoText2 := ""
 
+	amount := account.Balance
+
 	if account.Balance >= 0 {
 		journalType1 = types.CREDIT
 		memoText1 = "opening-balance-credit"
@@ -272,22 +526,25 @@ func (txService *TransactionService) spawnNewAccountBlock(account *types.Account
 		memoText1 = "opening-balance-debit"
 		journalType2 = types.CREDIT
 		memoText2 = "closing-balance-credit"
+		amount *= -1
 	}
 
 	txService.postTransactionToBlock(types.TransactionInputEntry{
 		TransactionEntry: types.TransactionEntry{
-			Amount: account.Balance,
+			Amount: amount,
 			Type:   journalType1,
 		},
-		Memo: memoText1,
-	}, account.CurrentActiveBlockId, transitionTransaction.ID, account.AccountNumber, queryBdTx)
+		Memo:    memoText1,
+		OwnerId: newAccount.OwnerId,
+	}, newAccount.CurrentActiveBlockId, transitionTransaction.ID, account.AccountNumber, queryBdTx)
 
 	txService.postTransactionToBlock(types.TransactionInputEntry{
 		TransactionEntry: types.TransactionEntry{
-			Amount: account.Balance,
+			Amount: amount,
 			Type:   journalType2,
 		},
-		Memo: memoText2,
+		Memo:    memoText2,
+		OwnerId: newAccount.OwnerId,
 	}, oldBlockId, transitionTransaction.ID, account.AccountNumber, queryBdTx)
 
 	oldBlock, ftchErr := txService.accountBlockRepo.FindById(oldBlockId)

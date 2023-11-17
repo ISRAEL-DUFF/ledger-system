@@ -233,3 +233,22 @@ func (walletController *WalletController) PostTransaction(c *gin.Context) {
 
 	httpUtil.SuccessResponseWithMessage(c, http.StatusAccepted, "Transaction posted")
 }
+
+func (walletController *WalletController) GetWalletStatus(c *gin.Context) {
+	accountNumber, exists := c.Params.Get("accountNumber")
+
+	if !exists {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "unknown account number")
+		return
+	}
+
+	account := walletController.walletService.WalletStatus(accountNumber)
+
+	// if err != nil {
+	// 	httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, err.Error())
+	// 	return
+	// }
+
+	httpUtil.SuccessResponseWithData(c, http.StatusAccepted, account)
+
+}

@@ -15,6 +15,7 @@ type IJournalEntryRepository interface {
 	Create(input types.CreateJournalEntry) (*model.JournalEntry, error)
 	FindById(id string) (*model.JournalEntry, error)
 	FindAllByBlockId(blockId string) ([]*model.JournalEntry, error)
+	FindAllByTransactionId(transactioinId string) ([]*model.JournalEntry, error)
 }
 
 type JournalEntryRepository struct {
@@ -87,6 +88,19 @@ func (journalEntryRepo *JournalEntryRepository) FindAllByBlockId(blockId string)
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
 	jEntries, err := journalEntry.Where(dbInstance.JournalEntry.BlockID.Eq(blockId)).Find()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jEntries, nil
+}
+
+func (journalEntryRepo *JournalEntryRepository) FindAllByTransactionId(transactioinId string) ([]*model.JournalEntry, error) {
+	dbInstance := journalEntryRepo.dbQuery
+	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
+
+	jEntries, err := journalEntry.Where(dbInstance.JournalEntry.TransactionID.Eq(transactioinId)).Find()
 
 	if err != nil {
 		return nil, err

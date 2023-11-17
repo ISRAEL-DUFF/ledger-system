@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
@@ -15,6 +16,7 @@ type IBlockMetumRepository interface {
 	Create(input types.CreateBlockMetum) (*model.BlockMetum, error)
 	FindById(id string) (*model.BlockMetum, error)
 	Update(data *model.BlockMetum) error
+	FindAllBlockMetaInBetween(startDate, endDate int32) ([]*model.BlockMetum, error)
 }
 
 type BlockMetum struct {
@@ -44,11 +46,11 @@ func (blockMetumRepo *BlockMetum) Create(input types.CreateBlockMetum) (*model.B
 	blockMetum := dbInstance.BlockMetum.WithContext(context.Background())
 
 	createdBlockMetum := &model.BlockMetum{
-		AccountID:       input.AccountId,
-		BlockTxLimit:    int32(input.BlockTxLimit),
-		TransactionTxID: input.TransitionTxId,
-		OpeningDate:     input.OpeningDate,
-		ClosingDate:     input.ClosingDate,
+		AccountID:      input.AccountId,
+		BlockTxLimit:   int32(input.BlockTxLimit),
+		TransitionTxID: input.TransitionTxId,
+		OpeningDate:    input.OpeningDate,
+		ClosingDate:    input.ClosingDate,
 	}
 
 	if err := blockMetum.Create(createdBlockMetum); err != nil {
@@ -84,4 +86,20 @@ func (blockMetumRepo *BlockMetum) Update(data *model.BlockMetum) error {
 	}
 
 	return nil
+}
+
+func (blockMetumRepo *BlockMetum) FindAllBlockMetaInBetween(startDate, endDate int32) ([]*model.BlockMetum, error) {
+	dbInstance := blockMetumRepo.dbQuery
+	blockMetum := dbInstance.BlockMetum.WithContext(context.Background())
+
+	var err error
+
+	// TODO: verify this query
+	blockMeta, err := blockMetum.Where(dbInstance.BlockMetum.CreatedAt.Lte(time.UnixMilli(int64(startDate))), dbInstance.BlockMetum.CreatedAt.Gte(time.UnixMilli(int64(startDate)))).Order(dbInstance.BlockMetum.CreatedAt).Find()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return blockMeta, nil
 }

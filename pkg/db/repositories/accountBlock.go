@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/db/dao"
@@ -15,6 +16,10 @@ type IAccountBlockRepository interface {
 	Create(input types.CreateAccountBlock) (*model.AccountBlock, error)
 	FindById(id string) (*model.AccountBlock, error)
 	Update(data *model.AccountBlock) error
+	FindByDate(transactionDate int32, direction string) (*model.AccountBlock, error)
+	// FindAllBlocksInBetween(startDate, endDate int32) ([]*model.AccountBlock, error)
+	GetCurrentOpenBlock(accountID string) (*model.AccountBlock, error)
+	FindAllByIDs(accountBlockIDs []string) ([]*model.AccountBlock, error)
 }
 
 type AccountBlockRepository struct {
@@ -71,6 +76,41 @@ func (accountBlockRepo *AccountBlockRepository) FindById(id string) (*model.Acco
 	return acctBlock, nil
 }
 
+func (accountBlockRepo *AccountBlockRepository) FindByDate(transactionDate int32, direction string) (*model.AccountBlock, error) {
+	dbInstance := accountBlockRepo.dbQuery
+	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
+
+	var acctBlock *model.AccountBlock
+	var err error
+
+	if direction == "left" {
+		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.CreatedAt.Lte(time.UnixMilli(int64(transactionDate)))).Order(dbInstance.AccountBlock.CreatedAt.Desc()).First()
+
+	} else {
+		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.CreatedAt.Gte(time.UnixMilli(int64(transactionDate)))).Order(dbInstance.AccountBlock.CreatedAt).First()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return acctBlock, nil
+}
+
+func (accountBlockRepo *AccountBlockRepository) GetCurrentOpenBlock(accountID string) (*model.AccountBlock, error) {
+	dbInstance := accountBlockRepo.dbQuery
+	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
+
+	// TODO: check this IsCurrentBlock condition
+	acctBlock, err := accountBlock.Where(dbInstance.AccountBlock.AccountID.Eq(accountID), dbInstance.AccountBlock.IsCurrentBlock, dbInstance.AccountBlock.Status.Eq(string(types.OPEN))).Order(dbInstance.AccountBlock.CreatedAt.Desc()).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return acctBlock, nil
+}
+
 func (accountBlockRep *AccountBlockRepository) Update(data *model.AccountBlock) error {
 	if data.ID == "" {
 		return errors.New("can't update account block without primary ID")
@@ -84,4 +124,17 @@ func (accountBlockRep *AccountBlockRepository) Update(data *model.AccountBlock) 
 	}
 
 	return nil
+}
+
+func (accountBlockRepo *AccountBlockRepository) FindAllByIDs(accountBlockIDs []string) ([]*model.AccountBlock, error) {
+	dbInstance := accountBlockRepo.dbQuery
+	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
+
+	acctBlocks, err := accountBlock.Where(dbInstance.AccountBlock.ID.In(accountBlockIDs...)).Find()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return acctBlocks, nil
 }

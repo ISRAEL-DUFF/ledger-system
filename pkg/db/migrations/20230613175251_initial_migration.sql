@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS block_meta(
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     account_id UUID NOT NULL,
     block_tx_limit INTEGER NOT NULL,
-    transaction_tx_id UUID NOT NULL,
+    transition_tx_id UUID NOT NULL,
     opening_date TEXT NOT NULL,
     closing_date TEXT NULL,
     PRIMARY KEY (id)

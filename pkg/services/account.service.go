@@ -14,12 +14,9 @@ import (
 
 type IAccountService interface {
 	CreateLedgerAccount(name string, ownerId string, opts ...LedgerAccountOption) (string, error)
-	CreateInternalAccounts(ownerId string) []*types.InternalAccount
-	GetAccountPairs(mainAccountNumber string) *types.AccountPairs
 	AccountBalance(accountNumber string) int
 	GetAccount(accountNumber string) *types.AccountRepresentation
 	InitializeNewBlock(accountNumber string, dbQueryTx types.IDBTransaction) *types.AccountRepresentation
-	AccountStatus(mainAccountNumber string) *types.AccountStatus
 	ExtractTransactionEntries(input types.PostTransactionInput, entryList [][]types.TransactionInputEntry) ([][]types.TransactionInputEntry, error)
 	CreateWalletType(ownerId string, name string) (*model.WalletType, error)
 	CreateWallet(ownerId string, walletTypeId string) *Wallet
@@ -27,6 +24,7 @@ type IAccountService interface {
 	GetWalletByAccountNumber(accountNumber string) (*Wallet, error)
 	ListUserWallets(ownerId string) ([]*Wallet, error)
 	UpdateWalletType(typeId string, walletTypeData map[string]interface{}) error
+	WalletStatus(mainAccountNumber string) *types.AccountStatus
 }
 
 type AccountService struct {
@@ -129,38 +127,6 @@ func (accountService *AccountService) CreateLedgerAccount(name string, ownerId s
 	return accountNumber, nil
 }
 
-func (accountService *AccountService) CreateInternalAccounts(ownerId string) []*types.InternalAccount {
-	accounts := make([]*types.InternalAccount, 4)
-
-	accountIdGenerator := utils.NewAccountIdGenerator(8)
-	accountId, err := accountIdGenerator()
-
-	if err != nil {
-		panic("unable to generate account Id!!!")
-	}
-
-	for i := 1; i <= 4; i++ {
-		acctName := fmt.Sprintf("A%s-%s", fmt.Sprint(i), accountId)
-		// fmt.Sprintf("A%s", fmt.Sprint(i))
-		acctNumber, _ := accountService.CreateLedgerAccount(acctName, ownerId, func(claoi *CreateLedgerAccountOptionInput) {
-			claoi.LedgerAccountInput.Label = fmt.Sprintf("A%s", fmt.Sprint(i))
-		})
-
-		if i == 1 {
-			accountId = acctNumber
-		}
-
-		accounts[i-1] = &types.InternalAccount{
-			AccountNumber: acctNumber,
-			Label:         fmt.Sprintf("A%s", fmt.Sprint(i)),
-			OwnerId:       ownerId,
-		}
-	}
-
-	return accounts
-
-}
-
 func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId string) *Wallet {
 	walletType := accountService.walletTypeRepo.GetWalletRulesByTypeId(walletTypeId)
 
@@ -256,7 +222,7 @@ func (accountService *AccountService) GetWalletByAccountNumber(accountNumber str
 		createdAccountLabels.Add(account.Label)
 	}
 
-	uncreatedAccountLabels := setOfAccountLabels.Difference(*createdAccountLabels).Values()
+	uncreatedAccountLabels := setOfAccountLabels.Difference(createdAccountLabels).Values()
 	generatedAccountNumbers := []string{}
 
 	for _, acctLable := range uncreatedAccountLabels {
@@ -333,7 +299,7 @@ func (accountService *AccountService) ListUserWallets(ownerId string) ([]*Wallet
 			createdAccountLabels.Add(account.Label)
 		}
 
-		uncreatedAccountLabels := setOfAccountLabels.Difference(*createdAccountLabels).Values()
+		uncreatedAccountLabels := setOfAccountLabels.Difference(createdAccountLabels).Values()
 		generatedAccountNumbers := []string{}
 
 		for _, acctLable := range uncreatedAccountLabels {
@@ -405,33 +371,6 @@ func (accountService *AccountService) ListWalletTypes(ownerId string) ([]*model.
 	}
 
 	return wt, nil
-}
-
-func (accountService *AccountService) GetAccountPairs(mainAccountNumber string) *types.AccountPairs {
-	mainAccount, err := accountService.ledgerAccountRepo.FindByAccountNumber(mainAccountNumber)
-
-	if err != nil {
-		panic("invalid main account number")
-	}
-
-	a2CoaAccount, err2 := accountService.chartOfAccountService.FindByName("A2-" + mainAccount.AccountNumber)
-	a3CoaAccount, err3 := accountService.chartOfAccountService.FindByName("A3-" + mainAccount.AccountNumber)
-	a4CoaAccount, err4 := accountService.chartOfAccountService.FindByName("A4-" + mainAccount.AccountNumber)
-
-	if err2 != nil || err3 != nil || err4 != nil {
-		panic("incomplete account!!!")
-	}
-
-	a2Account, _ := accountService.ledgerAccountRepo.FindByAccountNumber(a2CoaAccount.AccountNumber)
-	a3Account, _ := accountService.ledgerAccountRepo.FindByAccountNumber(a3CoaAccount.AccountNumber)
-	a4Account, _ := accountService.ledgerAccountRepo.FindByAccountNumber(a4CoaAccount.AccountNumber)
-
-	return &types.AccountPairs{
-		A1: mainAccount.AccountNumber,
-		A2: a2Account.AccountNumber,
-		A3: a3Account.AccountNumber,
-		A4: a4Account.AccountNumber,
-	}
 }
 
 func (accountService *AccountService) AccountBalance(accountNumber string) int {
@@ -555,36 +494,31 @@ func (accountService *AccountService) InitializeNewBlock(accountNumber string, d
 	}
 }
 
-func (accountService *AccountService) AccountStatus(mainAccountNumber string) *types.AccountStatus {
-	accountPairs := accountService.GetAccountPairs(mainAccountNumber)
-	a1AccountBalance := accountService.AccountBalance(accountPairs.A1)
-	a2AccountBalance := accountService.AccountBalance(accountPairs.A2)
-	a3AccountBalance := accountService.AccountBalance(accountPairs.A3)
-	a4AccountBalance := accountService.AccountBalance(accountPairs.A4)
+func (accountService *AccountService) WalletStatus(mainAccountNumber string) *types.AccountStatus {
+	wallet, err := accountService.GetWalletByAccountNumber(mainAccountNumber)
 
-	netBalance := a1AccountBalance + a2AccountBalance + a3AccountBalance + a4AccountBalance
+	if err != nil {
+		panic(err)
+	}
 
-	accounts := [4]types.AccountStatusInfo{{
-		AccountNumber: accountPairs.A1,
-		Balance:       a1AccountBalance,
-		Type:          "A1",
-	}, {
-		AccountNumber: accountPairs.A2,
-		Balance:       a1AccountBalance,
-		Type:          "A2",
-	}, {
-		AccountNumber: accountPairs.A3,
-		Balance:       a1AccountBalance,
-		Type:          "A3",
-	}, {
-		AccountNumber: accountPairs.A4,
-		Balance:       a1AccountBalance,
-		Type:          "A4",
-	}}
+	netBalance := 0
+	accounts := make([]types.AccountStatusInfo, 0)
+
+	for _, account := range wallet.accounts {
+		balance := accountService.AccountBalance(account.AccountNumber)
+
+		accounts = append(accounts, types.AccountStatusInfo{
+			AccountNumber: account.AccountNumber,
+			Balance:       balance,
+			Type:          account.Label,
+		})
+		netBalance += balance
+	}
 
 	return &types.AccountStatus{
-		Balanced: netBalance == 0,
-		Accounts: accounts[:],
+		Balanced:  netBalance == 0,
+		NetAmount: netBalance,
+		Accounts:  accounts[:],
 	}
 }
 

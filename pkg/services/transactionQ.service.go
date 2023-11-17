@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/israel-duff/ledger-system/pkg/types"
@@ -19,21 +20,24 @@ type ITransactionQService interface {
 
 type AccountMapValue struct {
 	AccountNumber string
-	LockOwners    datastructure.Set[string]
+	LockOwners    *datastructure.Set[string]
 }
 
 type TransactionQueueService struct {
+	dependencyQ datastructure.Map[string, types.DependencyQueueItem]
+	accountsMap datastructure.MultiMap[string, AccountMapValue]
+
+	mu           sync.RWMutex
 	transactions []string
-	dependencyQ  map[string]types.DependencyQueueItem
-	accountsMap  datastructure.MultiMap[string, AccountMapValue]
 	lockIndex    int
 }
 
 func NewTransactionQService() *TransactionQueueService {
+	fmt.Println("<<<<<<<NEW QUEUE CREATED>>>>>>>>>")
 	return &TransactionQueueService{
 		transactions: make([]string, 0),
-		dependencyQ:  make(map[string]types.DependencyQueueItem),
-		accountsMap:  *datastructure.NewMap[string, AccountMapValue](),
+		dependencyQ:  *datastructure.NewMap[string, types.DependencyQueueItem](),
+		accountsMap:  *datastructure.NewMultiMap[string, AccountMapValue](),
 		lockIndex:    0,
 	}
 }
@@ -54,24 +58,30 @@ func (txQService *TransactionQueueService) Enqueue(transaction types.Transaction
 			loc.Add(lockId)
 			txQService.accountsMap.Set(entry.AccountNumber, AccountMapValue{
 				AccountNumber: entry.AccountNumber,
-				LockOwners:    *loc,
+				LockOwners:    loc,
 			})
 		}
 	}
 
 	dependencies := depSet.Values()
+
+	txQService.mu.Lock()
 	txQService.transactions = append(txQService.transactions, lockId)
-	txQService.dependencyQ[lockId] = types.DependencyQueueItem{
+	txQService.mu.Unlock()
+	txQService.dependencyQ.Set(lockId, types.DependencyQueueItem{
 		Tx:           transaction,
 		LockId:       lockId,
 		Dependencies: dependencies,
-	}
+	})
 
 	return lockId
 }
 
 func (txQService *TransactionQueueService) Dequeue(lockId string) (types.DependencyQueueItem, bool) {
-	input, found := txQService.dependencyQ[lockId]
+	txQService.mu.Lock()
+	defer txQService.mu.Unlock()
+
+	input, found := txQService.dependencyQ.Get(lockId)
 
 	if found {
 		for _, entry := range input.Tx.Entries {
@@ -88,25 +98,26 @@ func (txQService *TransactionQueueService) Dequeue(lockId string) (types.Depende
 		lockIndex := -1
 		n := len(txQService.transactions)
 
-		for i := n; i < n; i++ {
+		for i := 0; i < n; i++ {
 			locId := txQService.transactions[i]
-			t, exists := txQService.dependencyQ[locId]
+			t, exists := txQService.dependencyQ.Get(locId)
 
 			if locId == input.LockId {
 				lockIndex = i
 			}
 
 			if exists {
-				itemIndex, itemExists := utils.GetArrayItemIndex[string](input.LockId, input.Dependencies)
+				itemIndex, itemExists := utils.GetArrayItemIndex[string](input.LockId, t.Dependencies)
+
 				if itemExists {
 					newArr, _ := utils.DeleteArrayItem[string](int32(itemIndex), t.Dependencies)
 					t.Dependencies = newArr
-					txQService.dependencyQ[locId] = t
+					txQService.dependencyQ.Set(locId, t)
 				}
 			}
 		}
 
-		if lockIndex > 0 {
+		if lockIndex >= 0 {
 			utils.DeleteArrayItem[string](int32(lockIndex), txQService.transactions)
 		}
 
@@ -117,15 +128,18 @@ func (txQService *TransactionQueueService) Dequeue(lockId string) (types.Depende
 }
 
 func (txQService *TransactionQueueService) GetItemById(lockId string) (types.DependencyQueueItem, bool) {
-	item, exists := txQService.dependencyQ[lockId]
+	item, exists := txQService.dependencyQ.Get(lockId)
 
 	return item, exists
 }
 
 func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionInput, onReady func(types.TransactionInput) (types.TransactionResponse, error)) (types.TransactionResponse, error) {
-	fmt.Println("scheduling - ")
+	fmt.Println("scheduling... ")
 
 	lockResponse := txQService.Enqueue(txRequest)
+
+	fmt.Println(lockResponse, "... Enqueued")
+
 	doneChan := make(chan string)
 	var txResponse types.TransactionResponse
 
@@ -142,15 +156,17 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 				txRes, err := onReady(item.Tx)
 
 				if err != nil {
+					txQService.Dequeue(item.LockId)
+					fmt.Println(lockResponse, ".... Dequeued")
 					doneChan <- "failed"
+					break
 				} else {
 					txResponse = txRes
+					txQService.Dequeue(item.LockId)
+					fmt.Println(lockResponse, ".... Dequeued")
+					doneChan <- "success"
+					break
 				}
-
-				txQService.Dequeue(item.LockId)
-				doneChan <- "success"
-
-				break
 			} else {
 				doneChan <- "waiting"
 			}
@@ -172,10 +188,16 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 		}
 	}
 
+	fmt.Println("Done With... ", lockResponse)
+
 	return txResponse, nil
 }
 
 func (txQService *TransactionQueueService) generateLockId() string {
+	txQService.mu.Lock()
+	defer txQService.mu.Unlock()
+
 	txQService.lockIndex += 1
+
 	return "lock_" + fmt.Sprintf("%d", txQService.lockIndex)
 }

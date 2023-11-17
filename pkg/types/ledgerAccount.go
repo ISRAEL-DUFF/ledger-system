@@ -5,6 +5,7 @@ type LedgerAccountStatus string
 type AccountBlockStatus string
 type JournalType string
 type TransactionStatus string
+type BlockSearchStatus string
 
 const (
 	CASH_RECEIPT   LedgerBook = "cash_receipt"
@@ -29,6 +30,13 @@ const (
 const (
 	TRANSACTION_PENDING  TransactionStatus = "pending"
 	TRANSACTION_APPROVED TransactionStatus = "approved"
+)
+
+const (
+	RIGHT_ONLY       BlockSearchStatus = "right_only"
+	LEFT_ONLY        BlockSearchStatus = "left_only"
+	WITHIN_BLOCK     BlockSearchStatus = "within_block"
+	NOT_IN_ANY_BLOCK BlockSearchStatus = "not_in_any_block"
 )
 
 type CreateLedgerAccount struct {
@@ -100,8 +108,18 @@ type AccountStatusInfo struct {
 }
 
 type AccountStatus struct {
-	Balanced bool
-	Accounts []AccountStatusInfo
+	Balanced  bool
+	NetAmount int
+	Accounts  []AccountStatusInfo
+}
+
+type AccountBlockType struct {
+	ID                string
+	AccountID         string
+	Status            AccountBlockStatus
+	BlockSize         int32
+	TransactionsCount int32
+	CreatedAt         string
 }
 
 type TransactionEntry struct {
