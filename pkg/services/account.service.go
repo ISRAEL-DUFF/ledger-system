@@ -398,6 +398,8 @@ func (accountService *AccountService) AccountBalance(accountNumber string) int {
 		}
 	}
 
+	// time.Sleep(time.Millisecond * 200)
+
 	return balance
 }
 

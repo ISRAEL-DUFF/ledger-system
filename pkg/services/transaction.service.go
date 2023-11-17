@@ -177,7 +177,9 @@ func (txService *TransactionService) CreateQueuedLedgerTransaction(input types.T
 		return resp, err
 	})
 
-	return r, err
+	r.ReleaseLock()
+
+	return r.TxResponse, err
 }
 
 func (txService *TransactionService) PostQueuedWalletTransaction(input types.PostTransactionInput) error {
@@ -192,12 +194,11 @@ func (txService *TransactionService) PostQueuedWalletTransaction(input types.Pos
 
 	fmt.Println(txEntries)
 
-	for _, entry := range txEntries {
-		// _, err := txService.createSingleLedgerTransaction(types.TransactionInput{
-		// 	Entries: entry,
-		// }, dbQueryTx)
+	var schedulerResp []SchedulerResponse = []SchedulerResponse{}
 
-		_, err := txService.txQ.Schedule(types.TransactionInput{
+	for _, entry := range txEntries {
+
+		r, err := txService.txQ.Schedule(types.TransactionInput{
 			Entries: entry,
 		}, func(resInput types.TransactionInput) (types.TransactionResponse, error) {
 			resp, er := txService.createSingleLedgerTransaction(resInput, dbQueryTx)
@@ -209,9 +210,15 @@ func (txService *TransactionService) PostQueuedWalletTransaction(input types.Pos
 			dbQueryTx.Rollback()
 			return err
 		}
+
+		schedulerResp = append(schedulerResp, r)
 	}
 
 	dbQueryTx.Commit()
+
+	for _, r := range schedulerResp {
+		r.ReleaseLock()
+	}
 
 	return nil
 }
@@ -460,37 +467,6 @@ func (txService *TransactionService) AccountBlanceAtEndOfDay(transactioinDate in
 	return txService.AccountBalanceAsAt(int32(utils.EndOfDay(int64(transactioinDate))), accountID)
 }
 
-func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {
-	blockRepo := txService.accountBlockRepo.WithTransaction(dbQueryTx)
-	block, err := blockRepo.FindById(blockId)
-
-	if err != nil {
-		panic("invalid block")
-	}
-
-	journalEntryRepo := txService.journalRepo.WithTransaction(dbQueryTx)
-	_, createErr := journalEntryRepo.Create(types.CreateJournalEntry{
-		Amount:        entry.Amount,
-		Type:          entry.Type,
-		BlockId:       block.ID,
-		TransactionId: transactionId,
-		AccountNumber: accountNumber,
-		Memo:          entry.Memo,
-		OwnerId:       entry.OwnerId,
-		// OrganizationId: entry.OrganizationId,
-	})
-
-	if createErr != nil {
-		panic("unable to add journal entry")
-	}
-
-	block.TransactionsCount += 1
-
-	if updateErr := blockRepo.Update(block); updateErr != nil {
-		panic("unable to update block transanctions count")
-	}
-}
-
 func (txService *TransactionService) spawnNewAccountBlock(account *types.AccountRepresentation, queryBdTx types.IDBTransaction) *types.AccountRepresentation {
 	oldBlockId := account.CurrentActiveBlockId
 	newAccount := txService.accountService.InitializeNewBlock(account.AccountNumber, queryBdTx)
@@ -583,4 +559,35 @@ func (txService *TransactionService) postTransaction(entry types.TransactionInpu
 	}
 
 	txService.postTransactionToBlock(entry, accountData.CurrentActiveBlockId, transactionId, accountData.AccountNumber, dbQueryTx)
+}
+
+func (txService *TransactionService) postTransactionToBlock(entry types.TransactionInputEntry, blockId string, transactionId string, accountNumber string, dbQueryTx types.IDBTransaction) {
+	blockRepo := txService.accountBlockRepo.WithTransaction(dbQueryTx)
+	block, err := blockRepo.FindById(blockId)
+
+	if err != nil {
+		panic("invalid block")
+	}
+
+	journalEntryRepo := txService.journalRepo.WithTransaction(dbQueryTx)
+	_, createErr := journalEntryRepo.Create(types.CreateJournalEntry{
+		Amount:        entry.Amount,
+		Type:          entry.Type,
+		BlockId:       block.ID,
+		TransactionId: transactionId,
+		AccountNumber: accountNumber,
+		Memo:          entry.Memo,
+		OwnerId:       entry.OwnerId,
+		// OrganizationId: entry.OrganizationId,
+	})
+
+	if createErr != nil {
+		panic("unable to add journal entry")
+	}
+
+	block.TransactionsCount += 1
+
+	if updateErr := blockRepo.Update(block); updateErr != nil {
+		panic("unable to update block transanctions count")
+	}
 }

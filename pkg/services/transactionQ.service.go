@@ -15,7 +15,12 @@ type ITransactionQService interface {
 	Enqueue(transaction types.TransactionInput) string
 	Dequeue(lockId string) (types.DependencyQueueItem, bool)
 	GetItemById(lockId string) (types.DependencyQueueItem, bool)
-	Schedule(txRequest types.TransactionInput, onReady func(types.TransactionInput) (types.TransactionResponse, error)) (types.TransactionResponse, error)
+	Schedule(txRequest types.TransactionInput, onReady func(types.TransactionInput) (types.TransactionResponse, error)) (SchedulerResponse, error)
+}
+
+type SchedulerResponse struct {
+	TxResponse  types.TransactionResponse
+	ReleaseLock func()
 }
 
 type AccountMapValue struct {
@@ -133,7 +138,7 @@ func (txQService *TransactionQueueService) GetItemById(lockId string) (types.Dep
 	return item, exists
 }
 
-func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionInput, onReady func(types.TransactionInput) (types.TransactionResponse, error)) (types.TransactionResponse, error) {
+func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionInput, onReady func(types.TransactionInput) (types.TransactionResponse, error)) (SchedulerResponse, error) {
 	fmt.Println("scheduling... ")
 
 	lockResponse := txQService.Enqueue(txRequest)
@@ -142,6 +147,7 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 
 	doneChan := make(chan string)
 	var txResponse types.TransactionResponse
+	var lockId string
 
 	go func() {
 		for {
@@ -152,7 +158,9 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 				break
 			}
 
-			if len(item.Dependencies) == 0 {
+			noDependencies := len(item.Dependencies) == 0
+
+			if noDependencies {
 				txRes, err := onReady(item.Tx)
 
 				if err != nil {
@@ -162,8 +170,7 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 					break
 				} else {
 					txResponse = txRes
-					txQService.Dequeue(item.LockId)
-					fmt.Println(lockResponse, ".... Dequeued")
+					lockId = item.LockId
 					doneChan <- "success"
 					break
 				}
@@ -180,7 +187,7 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 		if statusResp == "failed" {
 			fmt.Println("FAILED")
 			close(doneChan)
-			return types.TransactionResponse{}, errors.New("tx scheduling failed")
+			return SchedulerResponse{}, errors.New("tx scheduling failed")
 		} else if statusResp == "success" {
 			fmt.Println("CLOSING CHANNEL....")
 			close(doneChan)
@@ -190,7 +197,13 @@ func (txQService *TransactionQueueService) Schedule(txRequest types.TransactionI
 
 	fmt.Println("Done With... ", lockResponse)
 
-	return txResponse, nil
+	return SchedulerResponse{
+		TxResponse: txResponse,
+		ReleaseLock: func() {
+			txQService.Dequeue(lockId)
+			fmt.Println(lockResponse, ".... Dequeued")
+		},
+	}, nil
 }
 
 func (txQService *TransactionQueueService) generateLockId() string {

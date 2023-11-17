@@ -291,7 +291,7 @@ func RandomFund(accountNumber string, frequency int, wg *sync.WaitGroup) {
 	for i := 0; i <= frequency; i++ {
 		FundWallet(accountNumber, int32(RandNumberBetween(10, 50)))
 
-		time.Sleep(time.Duration(500))
+		time.Sleep(time.Duration(100))
 	}
 }
 
@@ -301,7 +301,7 @@ func RandomWithDraw(accountNumber string, frequency int, wg *sync.WaitGroup) {
 	for i := 0; i <= frequency; i++ {
 		Withdraw(accountNumber, int32(RandNumberBetween(10, 50)))
 
-		time.Sleep(time.Duration(500))
+		time.Sleep(time.Duration(100))
 	}
 }
 

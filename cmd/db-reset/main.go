@@ -35,12 +35,11 @@ func main() {
 
 	fmt.Println("Creating Wallets...")
 	w1 := commonpkg.CreateUserWallet(commonpkg.Users[0])
-	// w2 := commonpkg.CreateUserWallet(commonpkg.Users[1])
-	// w3 := commonpkg.CreateUserWallet(commonpkg.Users[2])
+	w2 := commonpkg.CreateUserWallet(commonpkg.Users[1])
+	w3 := commonpkg.CreateUserWallet(commonpkg.Users[2])
 	fmt.Println("Done.")
 
-	// fmt.Println(w1.Accounts["A1"].AccountNumber, w2.Accounts["A1"].AccountNumber, w3.Accounts["A1"].AccountNumber)
-	fmt.Println(w1.Accounts["A1"].AccountNumber)
+	fmt.Println(w1.Accounts["A1"].AccountNumber, w2.Accounts["A1"].AccountNumber, w3.Accounts["A1"].AccountNumber)
 
-	// 10299815531 10677157503 16732306194
+	// 10839469401 11928596786 17589935560
 }
