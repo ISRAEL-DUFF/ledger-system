@@ -19,4 +19,6 @@ func RegisterWalletRoutes(r *gin.RouterGroup) {
 	walletRoutes.POST("/type/update", walletController.UpdateWalletType)
 	walletRoutes.GET("/type/list/:ownerId", walletController.ListWalletTypes)
 	walletRoutes.POST("/transaction/post", walletController.PostTransaction)
+	walletRoutes.GET("/account-statement/:accountNumber", walletController.GetAccountStatement)
+
 }

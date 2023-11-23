@@ -9,6 +9,7 @@ import (
 	"github.com/israel-duff/ledger-system/pkg/db/repositories"
 	"github.com/israel-duff/ledger-system/pkg/services"
 	"github.com/israel-duff/ledger-system/pkg/types"
+	"github.com/israel-duff/ledger-system/pkg/utils"
 	httpUtil "github.com/israel-duff/ledger-system/pkg/utils/httpUtil"
 )
 
@@ -52,7 +53,7 @@ func NewWalletController() *WalletController {
 
 	coaService := services.NewCoaService(coaRepo)
 	walletService := services.NewAccountService(coaService, accountBlockRepo, ledgerAccountRepo, journalEntry, walletRepo, walletTypeRepo)
-	transactionService := services.NewTransactionService(transactionRepo, journalEntry, accountBlockRepo, blockMetumRepo, transactionQService, walletService)
+	transactionService := services.NewTransactionService(transactionRepo, journalEntry, accountBlockRepo, ledgerAccountRepo, blockMetumRepo, transactionQService, walletService)
 
 	return &WalletController{
 		walletService:      walletService,
@@ -250,5 +251,30 @@ func (walletController *WalletController) GetWalletStatus(c *gin.Context) {
 	// }
 
 	httpUtil.SuccessResponseWithData(c, http.StatusAccepted, account)
+}
 
+func (walletController *WalletController) GetAccountStatement(ctx *gin.Context) {
+	accountNumber, found := ctx.Params.Get("accountNumber")
+
+	if !found {
+		httpUtil.ErrorResponseWithMessage(ctx, http.StatusBadGateway, "Account Number not found")
+	}
+
+	wallet := walletController.walletService.GetAccount(accountNumber)
+	fromDate := utils.NewDateStamp()
+	toDate := utils.NewDateStamp()
+	fromDate.AddDays(-4)
+
+	fromDateValue, strV := fromDate.StartOfDay()
+	toDateValue, toStrv := toDate.EndOfDay()
+
+	fmt.Println("HHHHHHHHHHHHHHH", strV, toStrv, "------", fromDateValue, toDateValue)
+
+	statements, err := walletController.transactionService.ComputeAccountStatementsBetween(fromDateValue, toDateValue, wallet.ID)
+
+	if err != nil {
+		httpUtil.ErrorResponseWithMessage(ctx, http.StatusBadGateway, err.Error())
+	}
+
+	httpUtil.SuccessResponseWithData(ctx, http.StatusAccepted, statements)
 }

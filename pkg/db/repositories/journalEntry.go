@@ -87,7 +87,7 @@ func (journalEntryRepo *JournalEntryRepository) FindAllByBlockId(blockId string)
 	dbInstance := journalEntryRepo.dbQuery
 	journalEntry := dbInstance.JournalEntry.WithContext(context.Background())
 
-	jEntries, err := journalEntry.Where(dbInstance.JournalEntry.BlockID.Eq(blockId)).Find()
+	jEntries, err := journalEntry.Where(dbInstance.JournalEntry.BlockID.Eq(blockId)).Order(dbInstance.JournalEntry.CreatedAt).Find()
 
 	if err != nil {
 		return nil, err

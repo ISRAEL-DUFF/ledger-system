@@ -118,9 +118,17 @@ func (accountService *AccountService) CreateLedgerAccount(name string, ownerId s
 	ledgerAccountPayload.Status = types.APPROVED
 	ledgerAccountPayload.BlockCount = 1
 
-	_, acctErr := accountService.ledgerAccountRepo.Create(*ledgerAccountPayload)
+	ledgerAccount, acctErr := accountService.ledgerAccountRepo.Create(*ledgerAccountPayload)
 
 	if acctErr != nil {
+		return "", acctErr
+	}
+
+	block.AccountID = ledgerAccount.ID
+
+	err = accountService.accountBlockRepo.Update(block)
+
+	if err != nil {
 		return "", err
 	}
 

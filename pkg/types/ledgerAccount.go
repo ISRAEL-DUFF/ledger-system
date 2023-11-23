@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type LedgerBook string
 type LedgerAccountStatus string
 type AccountBlockStatus string
@@ -148,8 +150,8 @@ type CreateBlockMetum struct {
 	AccountId      string
 	BlockTxLimit   int
 	TransitionTxId string
-	OpeningDate    string
-	ClosingDate    string
+	OpeningDate    time.Time
+	ClosingDate    time.Time
 }
 
 type DependencyQueueItem struct {
@@ -169,4 +171,12 @@ type CreateWallet struct {
 	AccountNumber  string
 	LedgerAccounts []string
 	OwnerId        string
+}
+
+type AccountStatementItem struct {
+	Amount      int
+	JournalType JournalType
+	Memo        string
+	Balance     int
+	Date        string
 }

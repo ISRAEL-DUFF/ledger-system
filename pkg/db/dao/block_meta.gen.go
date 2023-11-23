@@ -34,8 +34,8 @@ func newBlockMetum(db *gorm.DB, opts ...gen.DOOption) blockMetum {
 	_blockMetum.AccountID = field.NewString(tableName, "account_id")
 	_blockMetum.BlockTxLimit = field.NewInt32(tableName, "block_tx_limit")
 	_blockMetum.TransitionTxID = field.NewString(tableName, "transition_tx_id")
-	_blockMetum.OpeningDate = field.NewString(tableName, "opening_date")
-	_blockMetum.ClosingDate = field.NewString(tableName, "closing_date")
+	_blockMetum.OpeningDate = field.NewTime(tableName, "opening_date")
+	_blockMetum.ClosingDate = field.NewTime(tableName, "closing_date")
 
 	_blockMetum.fillFieldMap()
 
@@ -53,8 +53,8 @@ type blockMetum struct {
 	AccountID      field.String
 	BlockTxLimit   field.Int32
 	TransitionTxID field.String
-	OpeningDate    field.String
-	ClosingDate    field.String
+	OpeningDate    field.Time
+	ClosingDate    field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -78,8 +78,8 @@ func (b *blockMetum) updateTableName(table string) *blockMetum {
 	b.AccountID = field.NewString(table, "account_id")
 	b.BlockTxLimit = field.NewInt32(table, "block_tx_limit")
 	b.TransitionTxID = field.NewString(table, "transition_tx_id")
-	b.OpeningDate = field.NewString(table, "opening_date")
-	b.ClosingDate = field.NewString(table, "closing_date")
+	b.OpeningDate = field.NewTime(table, "opening_date")
+	b.ClosingDate = field.NewTime(table, "closing_date")
 
 	b.fillFieldMap()
 

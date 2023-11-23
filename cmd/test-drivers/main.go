@@ -16,7 +16,7 @@ func main() {
 	user3 := commonpkg.Users[2]
 
 	var wg sync.WaitGroup
-	wg.Add(6)
+	wg.Add(7)
 
 	user1Account := commonpkg.GetUserWallet(user1)
 	user2Account := commonpkg.GetUserWallet(user2)
@@ -30,6 +30,13 @@ func main() {
 	go commonpkg.RandomWithDraw(user1Account.AccountNumber, frequency, &wg)
 	go commonpkg.RandomWithDraw(user2Account.AccountNumber, frequency, &wg)
 	go commonpkg.RandomWithDraw(user3Account.AccountNumber, frequency, &wg)
+
+	walletsAccountNumbers := []string{
+		user1Account.AccountNumber,
+		user2Account.AccountNumber,
+	}
+
+	go commonpkg.RandomFundsTransfer(walletsAccountNumbers, frequency, &wg)
 
 	wg.Wait()
 }

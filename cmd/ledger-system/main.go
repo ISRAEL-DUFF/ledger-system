@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 	config "github.com/israel-duff/ledger-system/pkg/config"
 	"github.com/israel-duff/ledger-system/pkg/routes"
-	"github.com/israel-duff/ledger-system/pkg/utils"
 
 	"github.com/israel-duff/ledger-system/pkg/db"
 )
@@ -41,12 +38,6 @@ func main() {
 	routes.RegisterAuthRoutes(&r.RouterGroup)
 	routes.RegisterCOARoutes(&r.RouterGroup)
 	routes.RegisterWalletRoutes(&r.RouterGroup)
-
-	myDate := utils.NewDateStamp()
-	_, eod := myDate.AddDays(-2).EndOfDay()
-
-	s, x := myDate.Value()
-	fmt.Println(s, x, eod)
 
 	r.Run(":5050")
 

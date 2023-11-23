@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/israel-duff/ledger-system/pkg/config"
@@ -16,7 +17,7 @@ type IAccountBlockRepository interface {
 	Create(input types.CreateAccountBlock) (*model.AccountBlock, error)
 	FindById(id string) (*model.AccountBlock, error)
 	Update(data *model.AccountBlock) error
-	FindByDate(transactionDate int32, direction string) (*model.AccountBlock, error)
+	FindByDate(transactionDate int64, accountId, direction string) (*model.AccountBlock, error)
 	// FindAllBlocksInBetween(startDate, endDate int32) ([]*model.AccountBlock, error)
 	GetCurrentOpenBlock(accountID string) (*model.AccountBlock, error)
 	FindAllByIDs(accountBlockIDs []string) ([]*model.AccountBlock, error)
@@ -76,22 +77,30 @@ func (accountBlockRepo *AccountBlockRepository) FindById(id string) (*model.Acco
 	return acctBlock, nil
 }
 
-func (accountBlockRepo *AccountBlockRepository) FindByDate(transactionDate int32, direction string) (*model.AccountBlock, error) {
+func (accountBlockRepo *AccountBlockRepository) FindByDate(transactionDate int64, accountId, direction string) (*model.AccountBlock, error) {
 	dbInstance := accountBlockRepo.dbQuery
 	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
 
 	var acctBlock *model.AccountBlock
 	var err error
 
+	txDate := time.UnixMilli(int64(transactionDate))
+
+	fmt.Println("TXDATE:", txDate)
+
 	if direction == "left" {
-		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.CreatedAt.Lte(time.UnixMilli(int64(transactionDate)))).Order(dbInstance.AccountBlock.CreatedAt.Desc()).First()
+		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.AccountID.Eq(accountId), dbInstance.AccountBlock.CreatedAt.Lte(txDate)).Order(dbInstance.AccountBlock.CreatedAt.Desc()).First()
+
+		if err != nil {
+			return nil, err
+		}
 
 	} else {
-		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.CreatedAt.Gte(time.UnixMilli(int64(transactionDate)))).Order(dbInstance.AccountBlock.CreatedAt).First()
-	}
+		acctBlock, err = accountBlock.Where(dbInstance.AccountBlock.AccountID.Eq(accountId), dbInstance.AccountBlock.CreatedAt.Gte(txDate)).Order(dbInstance.AccountBlock.CreatedAt).First()
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return acctBlock, nil
@@ -130,7 +139,7 @@ func (accountBlockRepo *AccountBlockRepository) FindAllByIDs(accountBlockIDs []s
 	dbInstance := accountBlockRepo.dbQuery
 	accountBlock := dbInstance.AccountBlock.WithContext(context.Background())
 
-	acctBlocks, err := accountBlock.Where(dbInstance.AccountBlock.ID.In(accountBlockIDs...)).Find()
+	acctBlocks, err := accountBlock.Where(dbInstance.AccountBlock.ID.In(accountBlockIDs...)).Order(dbInstance.AccountBlock.CreatedAt).Find()
 
 	if err != nil {
 		return nil, err

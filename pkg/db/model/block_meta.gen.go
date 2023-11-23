@@ -21,8 +21,8 @@ type BlockMetum struct {
 	AccountID      string         `gorm:"column:account_id;not null" json:"account_id"`
 	BlockTxLimit   int32          `gorm:"column:block_tx_limit;not null" json:"block_tx_limit"`
 	TransitionTxID string         `gorm:"column:transition_tx_id;not null" json:"transition_tx_id"`
-	OpeningDate    string         `gorm:"column:opening_date;not null" json:"opening_date"`
-	ClosingDate    string         `gorm:"column:closing_date" json:"closing_date"`
+	OpeningDate    time.Time      `gorm:"column:opening_date;not null" json:"opening_date"`
+	ClosingDate    time.Time      `gorm:"column:closing_date" json:"closing_date"`
 }
 
 // TableName BlockMetum's table name

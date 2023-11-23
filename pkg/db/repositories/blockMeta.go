@@ -16,7 +16,7 @@ type IBlockMetumRepository interface {
 	Create(input types.CreateBlockMetum) (*model.BlockMetum, error)
 	FindById(id string) (*model.BlockMetum, error)
 	Update(data *model.BlockMetum) error
-	FindAllBlockMetaInBetween(startDate, endDate int32) ([]*model.BlockMetum, error)
+	FindAllBlockMetaInBetween(startDate, endDate int64, accountId string) ([]*model.BlockMetum, error)
 }
 
 type BlockMetum struct {
@@ -88,14 +88,14 @@ func (blockMetumRepo *BlockMetum) Update(data *model.BlockMetum) error {
 	return nil
 }
 
-func (blockMetumRepo *BlockMetum) FindAllBlockMetaInBetween(startDate, endDate int32) ([]*model.BlockMetum, error) {
+func (blockMetumRepo *BlockMetum) FindAllBlockMetaInBetween(startDate, endDate int64, accountId string) ([]*model.BlockMetum, error) {
 	dbInstance := blockMetumRepo.dbQuery
 	blockMetum := dbInstance.BlockMetum.WithContext(context.Background())
 
 	var err error
 
 	// TODO: verify this query
-	blockMeta, err := blockMetum.Where(dbInstance.BlockMetum.CreatedAt.Lte(time.UnixMilli(int64(startDate))), dbInstance.BlockMetum.CreatedAt.Gte(time.UnixMilli(int64(startDate)))).Order(dbInstance.BlockMetum.CreatedAt).Find()
+	blockMeta, err := blockMetum.Where(dbInstance.BlockMetum.AccountID.Eq(accountId), dbInstance.BlockMetum.OpeningDate.Gt(time.UnixMilli(startDate)), dbInstance.BlockMetum.ClosingDate.Lt(time.UnixMilli(endDate))).Order(dbInstance.BlockMetum.CreatedAt).Find()
 
 	if err != nil {
 		return nil, err

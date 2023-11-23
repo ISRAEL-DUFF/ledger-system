@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS block_meta(
     account_id UUID NOT NULL,
     block_tx_limit INTEGER NOT NULL,
     transition_tx_id UUID NOT NULL,
-    opening_date TEXT NOT NULL,
-    closing_date TEXT NULL,
+    opening_date TIMESTAMP NOT NULL,
+    closing_date TIMESTAMP NULL,
     PRIMARY KEY (id)
 );
 

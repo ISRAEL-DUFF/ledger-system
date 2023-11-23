@@ -281,6 +281,18 @@ func Withdraw(accountNumber string, amount int32) map[string]interface{} {
 	})
 }
 
+func FundsTransfer(accountNumber1, accountNumber2 string, amount int32) map[string]interface{} {
+	return PostTransaction(PostTransactionOpts{
+		PostType:      "transfer",
+		AccountNumber: accountNumber1,
+		MetaData: map[string]interface{}{
+			"memo":            "Test fundstrasfer",
+			"amount":          amount,
+			"toAccountNumber": accountNumber2,
+		},
+	})
+}
+
 func RandNumberBetween(max, min int) int {
 	return rand.Int()%max + min
 }
@@ -300,6 +312,17 @@ func RandomWithDraw(accountNumber string, frequency int, wg *sync.WaitGroup) {
 
 	for i := 0; i <= frequency; i++ {
 		Withdraw(accountNumber, int32(RandNumberBetween(10, 50)))
+
+		time.Sleep(time.Duration(100))
+	}
+}
+
+func RandomFundsTransfer(accountNumbers []string, frequency int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	// n := len(accountNumbers)
+
+	for i := 0; i <= frequency; i++ {
+		FundsTransfer(accountNumbers[0], accountNumbers[1], int32(RandNumberBetween(10, 50)))
 
 		time.Sleep(time.Duration(100))
 	}
