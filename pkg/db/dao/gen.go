@@ -18,6 +18,7 @@ import (
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                db,
+		APIKey:            newAPIKey(db, opts...),
 		AccountBlock:      newAccountBlock(db, opts...),
 		BlockMetum:        newBlockMetum(db, opts...),
 		ChartOfAccount:    newChartOfAccount(db, opts...),
@@ -25,6 +26,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		JournalEntry:      newJournalEntry(db, opts...),
 		LedgerAccount:     newLedgerAccount(db, opts...),
 		LedgerTransaction: newLedgerTransaction(db, opts...),
+		Organization:      newOrganization(db, opts...),
 		User:              newUser(db, opts...),
 		Wallet:            newWallet(db, opts...),
 		WalletType:        newWalletType(db, opts...),
@@ -34,6 +36,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	APIKey            aPIKey
 	AccountBlock      accountBlock
 	BlockMetum        blockMetum
 	ChartOfAccount    chartOfAccount
@@ -41,6 +44,7 @@ type Query struct {
 	JournalEntry      journalEntry
 	LedgerAccount     ledgerAccount
 	LedgerTransaction ledgerTransaction
+	Organization      organization
 	User              user
 	Wallet            wallet
 	WalletType        walletType
@@ -51,6 +55,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		APIKey:            q.APIKey.clone(db),
 		AccountBlock:      q.AccountBlock.clone(db),
 		BlockMetum:        q.BlockMetum.clone(db),
 		ChartOfAccount:    q.ChartOfAccount.clone(db),
@@ -58,6 +63,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		JournalEntry:      q.JournalEntry.clone(db),
 		LedgerAccount:     q.LedgerAccount.clone(db),
 		LedgerTransaction: q.LedgerTransaction.clone(db),
+		Organization:      q.Organization.clone(db),
 		User:              q.User.clone(db),
 		Wallet:            q.Wallet.clone(db),
 		WalletType:        q.WalletType.clone(db),
@@ -75,6 +81,7 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		APIKey:            q.APIKey.replaceDB(db),
 		AccountBlock:      q.AccountBlock.replaceDB(db),
 		BlockMetum:        q.BlockMetum.replaceDB(db),
 		ChartOfAccount:    q.ChartOfAccount.replaceDB(db),
@@ -82,6 +89,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		JournalEntry:      q.JournalEntry.replaceDB(db),
 		LedgerAccount:     q.LedgerAccount.replaceDB(db),
 		LedgerTransaction: q.LedgerTransaction.replaceDB(db),
+		Organization:      q.Organization.replaceDB(db),
 		User:              q.User.replaceDB(db),
 		Wallet:            q.Wallet.replaceDB(db),
 		WalletType:        q.WalletType.replaceDB(db),
@@ -89,6 +97,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	APIKey            *aPIKeyDo
 	AccountBlock      *accountBlockDo
 	BlockMetum        *blockMetumDo
 	ChartOfAccount    *chartOfAccountDo
@@ -96,6 +105,7 @@ type queryCtx struct {
 	JournalEntry      *journalEntryDo
 	LedgerAccount     *ledgerAccountDo
 	LedgerTransaction *ledgerTransactionDo
+	Organization      *organizationDo
 	User              *userDo
 	Wallet            *walletDo
 	WalletType        *walletTypeDo
@@ -103,6 +113,7 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		APIKey:            q.APIKey.WithContext(ctx),
 		AccountBlock:      q.AccountBlock.WithContext(ctx),
 		BlockMetum:        q.BlockMetum.WithContext(ctx),
 		ChartOfAccount:    q.ChartOfAccount.WithContext(ctx),
@@ -110,6 +121,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		JournalEntry:      q.JournalEntry.WithContext(ctx),
 		LedgerAccount:     q.LedgerAccount.WithContext(ctx),
 		LedgerTransaction: q.LedgerTransaction.WithContext(ctx),
+		Organization:      q.Organization.WithContext(ctx),
 		User:              q.User.WithContext(ctx),
 		Wallet:            q.Wallet.WithContext(ctx),
 		WalletType:        q.WalletType.WithContext(ctx),

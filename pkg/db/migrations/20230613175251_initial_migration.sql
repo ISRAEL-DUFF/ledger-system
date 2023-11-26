@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS users(
     updated_at TIMESTAMP NULL DEFAULT NULL,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     email_address VARCHAR(255) NOT NULL UNIQUE,
-    phone_number VARCHAR(20) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    phone_number VARCHAR(20) NULL UNIQUE,
     PRIMARY KEY (id)
 );
 

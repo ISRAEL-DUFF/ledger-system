@@ -30,6 +30,10 @@ func NewAccountIdGenerator(size int) func() (string, error) {
 	return CustomAlphabet("0123456789", size)
 }
 
+func NewApiKeyGenerator() func() (string, error) {
+	return CustomAlphabet("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 64)
+}
+
 func DeleteArrayItem[T any](index int32, array []T) ([]T, bool) {
 	arrayLen := len(array)
 

@@ -10,21 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
-const TableNameUser = "users"
+const TableNameOrganization = "organizations"
 
-// User mapped from table <users>
-type User struct {
+// Organization mapped from table <organizations>
+type Organization struct {
 	ID           string         `gorm:"column:id;primaryKey;default:uuid_generate_v4()" json:"id"`
 	CreatedAt    time.Time      `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at" json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	Name         string         `gorm:"column:name;not null" json:"name"`
+	Address      string         `gorm:"column:address;not null" json:"address"`
 	EmailAddress string         `gorm:"column:email_address;not null" json:"email_address"`
-	FullName     string         `gorm:"column:full_name;not null" json:"full_name"`
-	Password     string         `gorm:"column:password;not null" json:"password"`
-	PhoneNumber  string         `gorm:"column:phone_number" json:"phone_number"`
+	PhoneNumber  string         `gorm:"column:phone_number;not null" json:"phone_number"`
+	OwnerID      string         `gorm:"column:owner_id;not null" json:"owner_id"`
 }
 
-// TableName User's table name
-func (*User) TableName() string {
-	return TableNameUser
+// TableName Organization's table name
+func (*Organization) TableName() string {
+	return TableNameOrganization
 }

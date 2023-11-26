@@ -49,14 +49,26 @@ func NewDateStamp() *DateStamp {
 
 }
 
-func (dst *DateStamp) StartOfDay() (int64, string) {
+// func (dst *DateStamp) StartOfDay() (int64, string) {
+// 	sod := StartOfDay(dst.baseTimeStamp)
+// 	return sod, time.UnixMilli(sod).String()
+// }
+
+// func (dst *DateStamp) EndOfDay() (int64, string) {
+// 	eod := EndOfDay(dst.baseTimeStamp)
+// 	return eod, time.UnixMilli(eod).String()
+// }
+
+func (dst *DateStamp) StartOfDay() *DateStamp {
 	sod := StartOfDay(dst.baseTimeStamp)
-	return sod, time.UnixMilli(sod).String()
+	dst.baseTimeStamp = sod
+	return dst
 }
 
-func (dst *DateStamp) EndOfDay() (int64, string) {
+func (dst *DateStamp) EndOfDay() *DateStamp {
 	eod := EndOfDay(dst.baseTimeStamp)
-	return eod, time.UnixMilli(eod).String()
+	dst.baseTimeStamp = eod
+	return dst
 }
 
 func (dst *DateStamp) AddDays(numberOfDays int32) *DateStamp {

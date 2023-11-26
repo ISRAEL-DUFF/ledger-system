@@ -18,7 +18,6 @@ type IAccountBlockRepository interface {
 	FindById(id string) (*model.AccountBlock, error)
 	Update(data *model.AccountBlock) error
 	FindByDate(transactionDate int64, accountId, direction string) (*model.AccountBlock, error)
-	// FindAllBlocksInBetween(startDate, endDate int32) ([]*model.AccountBlock, error)
 	GetCurrentOpenBlock(accountID string) (*model.AccountBlock, error)
 	FindAllByIDs(accountBlockIDs []string) ([]*model.AccountBlock, error)
 }

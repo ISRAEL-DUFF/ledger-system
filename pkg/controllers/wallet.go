@@ -263,10 +263,10 @@ func (walletController *WalletController) GetAccountStatement(ctx *gin.Context) 
 	wallet := walletController.walletService.GetAccount(accountNumber)
 	fromDate := utils.NewDateStamp()
 	toDate := utils.NewDateStamp()
-	fromDate.AddDays(-4)
+	// fromDate.AddHours(6)
 
-	fromDateValue, strV := fromDate.StartOfDay()
-	toDateValue, toStrv := toDate.EndOfDay()
+	fromDateValue, strV := fromDate.StartOfDay().AddHours(5).Value()
+	toDateValue, toStrv := toDate.EndOfDay().Value()
 
 	fmt.Println("HHHHHHHHHHHHHHH", strV, toStrv, "------", fromDateValue, toDateValue)
 
