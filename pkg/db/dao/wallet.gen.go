@@ -36,6 +36,7 @@ func newWallet(db *gorm.DB, opts ...gen.DOOption) wallet {
 	_wallet.AccountNumber = field.NewString(tableName, "account_number")
 	_wallet.LedgerAccounts = field.NewString(tableName, "ledger_accounts")
 	_wallet.OwnerID = field.NewString(tableName, "owner_id")
+	_wallet.OrganizationID = field.NewString(tableName, "organization_id")
 
 	_wallet.fillFieldMap()
 
@@ -55,6 +56,7 @@ type wallet struct {
 	AccountNumber  field.String
 	LedgerAccounts field.String
 	OwnerID        field.String
+	OrganizationID field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -80,6 +82,7 @@ func (w *wallet) updateTableName(table string) *wallet {
 	w.AccountNumber = field.NewString(table, "account_number")
 	w.LedgerAccounts = field.NewString(table, "ledger_accounts")
 	w.OwnerID = field.NewString(table, "owner_id")
+	w.OrganizationID = field.NewString(table, "organization_id")
 
 	w.fillFieldMap()
 
@@ -104,7 +107,7 @@ func (w *wallet) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (w *wallet) fillFieldMap() {
-	w.fieldMap = make(map[string]field.Expr, 9)
+	w.fieldMap = make(map[string]field.Expr, 10)
 	w.fieldMap["id"] = w.ID
 	w.fieldMap["created_at"] = w.CreatedAt
 	w.fieldMap["updated_at"] = w.UpdatedAt
@@ -114,6 +117,7 @@ func (w *wallet) fillFieldMap() {
 	w.fieldMap["account_number"] = w.AccountNumber
 	w.fieldMap["ledger_accounts"] = w.LedgerAccounts
 	w.fieldMap["owner_id"] = w.OwnerID
+	w.fieldMap["organization_id"] = w.OrganizationID
 }
 
 func (w wallet) clone(db *gorm.DB) wallet {

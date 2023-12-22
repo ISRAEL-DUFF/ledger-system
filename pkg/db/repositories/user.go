@@ -13,6 +13,10 @@ import (
 type IUserRepository interface {
 	types.IBaseRepository[IUserRepository]
 	Create(input types.CreateUser) (*model.User, error)
+	FindByPhoneNumber(phoneNumber string) (*model.User, error)
+	FindByEmail(emailAddress string) (*model.User, error)
+	FindByEmailAndPhone(emailAddress, phoneNumber string) (*model.User, error)
+	FindByID(id string) (*model.User, error)
 }
 
 type UserRepository struct {
@@ -54,6 +58,58 @@ func (userRepo *UserRepository) Create(input types.CreateUser) (*model.User, err
 	}
 
 	if err := user.Create(userData); err != nil {
+		return nil, err
+	}
+
+	return userData, nil
+}
+
+func (userRepo *UserRepository) FindByEmail(emailAddress string) (*model.User, error) {
+	dbInstance := userRepo.dbQuery
+	user := dbInstance.User.WithContext(context.Background())
+
+	userData, err := user.Where(dbInstance.User.EmailAddress.Eq(emailAddress)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userData, nil
+}
+
+func (userRepo *UserRepository) FindByPhoneNumber(phoneNumber string) (*model.User, error) {
+	dbInstance := userRepo.dbQuery
+	user := dbInstance.User.WithContext(context.Background())
+
+	userData, err := user.Where(dbInstance.User.PhoneNumber.Eq(phoneNumber)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userData, nil
+}
+
+func (userRepo *UserRepository) FindByEmailAndPhone(emailAddress, phoneNumber string) (*model.User, error) {
+	dbInstance := userRepo.dbQuery
+	user := dbInstance.User.WithContext(context.Background())
+
+	userData, err := user.Where(dbInstance.User.EmailAddress.Eq(emailAddress), dbInstance.User.EmailAddress.Eq(phoneNumber)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userData, nil
+}
+
+func (userRepo *UserRepository) FindByID(id string) (*model.User, error) {
+	dbInstance := userRepo.dbQuery
+	user := dbInstance.User.WithContext(context.Background())
+
+	userData, err := user.Where(dbInstance.User.PhoneNumber.Eq(id)).First()
+
+	if err != nil {
 		return nil, err
 	}
 

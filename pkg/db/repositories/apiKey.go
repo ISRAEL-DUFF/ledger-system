@@ -14,6 +14,8 @@ type IApikeyRepository interface {
 	types.IBaseRepository[IApikeyRepository]
 	Create(input types.CreateAPIKEY) (*model.APIKey, error)
 	Update(data *model.APIKey) error
+	FindById(id string) (*model.APIKey, error)
+	FindByOrgId(id string) (*model.APIKey, error)
 }
 
 type ApikeyRepository struct {
@@ -62,6 +64,19 @@ func (apiRepo *ApikeyRepository) FindById(id string) (*model.APIKey, error) {
 	apikey := dbInstance.APIKey.WithContext(context.Background())
 
 	apiKey, err := apikey.Where(dbInstance.APIKey.ID.Eq(id)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
+func (apiRepo *ApikeyRepository) FindByOrgId(id string) (*model.APIKey, error) {
+	dbInstance := apiRepo.dbQuery
+	apikey := dbInstance.APIKey.WithContext(context.Background())
+
+	apiKey, err := apikey.Where(dbInstance.APIKey.OwnerID.Eq(id)).First()
 
 	if err != nil {
 		return nil, err

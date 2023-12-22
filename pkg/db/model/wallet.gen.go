@@ -23,6 +23,7 @@ type Wallet struct {
 	AccountNumber  string         `gorm:"column:account_number;not null" json:"account_number"`
 	LedgerAccounts string         `gorm:"column:ledger_accounts;not null" json:"ledger_accounts"`
 	OwnerID        string         `gorm:"column:owner_id;not null" json:"owner_id"`
+	OrganizationID string         `gorm:"column:organization_id;not null" json:"organization_id"`
 }
 
 // TableName Wallet's table name

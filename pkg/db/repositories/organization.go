@@ -12,6 +12,8 @@ import (
 type IOrganizationRepository interface {
 	types.IBaseRepository[IOrganizationRepository]
 	Create(input types.CreateOrganization) (*model.Organization, error)
+	FindById(id string) (*model.Organization, error)
+	FindByOwnerId(id string) (*model.Organization, error)
 }
 
 type OrganizationRepository struct {
@@ -55,4 +57,30 @@ func (orgRepo *OrganizationRepository) Create(input types.CreateOrganization) (*
 	}
 
 	return data, nil
+}
+
+func (apiRepo *OrganizationRepository) FindById(id string) (*model.Organization, error) {
+	dbInstance := apiRepo.dbQuery
+	org := dbInstance.Organization.WithContext(context.Background())
+
+	orgData, err := org.Where(dbInstance.Organization.ID.Eq(id)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return orgData, nil
+}
+
+func (apiRepo *OrganizationRepository) FindByOwnerId(id string) (*model.Organization, error) {
+	dbInstance := apiRepo.dbQuery
+	org := dbInstance.Organization.WithContext(context.Background())
+
+	orgData, err := org.Where(dbInstance.Organization.OwnerID.Eq(id)).First()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return orgData, nil
 }

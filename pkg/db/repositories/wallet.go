@@ -55,6 +55,7 @@ func (walletRepo *WalletRepository) Create(input types.CreateWallet) (*model.Wal
 		OwnerID:        input.OwnerId,
 		AccountNumber:  input.AccountNumber,
 		LedgerAccounts: string(jsonStr),
+		OrganizationID: input.OrganizationID,
 	}
 
 	if err := wallet.Create(createdWallet); err != nil {

@@ -41,5 +41,5 @@ func main() {
 
 	fmt.Println(w1.Accounts["A1"].AccountNumber, w2.Accounts["A1"].AccountNumber, w3.Accounts["A1"].AccountNumber)
 
-	// 16078405972 16435845521 18092882051
+	// 11398884261 11811706910 12567176796
 }

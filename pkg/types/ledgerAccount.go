@@ -171,6 +171,7 @@ type CreateWallet struct {
 	AccountNumber  string
 	LedgerAccounts []string
 	OwnerId        string
+	OrganizationID string
 }
 
 type AccountStatementItem struct {
@@ -179,4 +180,13 @@ type AccountStatementItem struct {
 	Memo        string
 	Balance     int
 	Date        string
+}
+
+type CreateWalletDto struct {
+	OrganizationID string `json:"organizationId"`
+	Name           string `json:"name"`
+	WalletTypeID   string `json:"walletTypeId"`
+	EmailAddress   string `json:"email"`
+	PhoneNumber    string `json:"phone"`
+	OwnerID        string `json:"ownerId"`
 }

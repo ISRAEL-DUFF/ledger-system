@@ -44,6 +44,8 @@ func NewWalletController() *WalletController {
 	coaRepo := repositories.NewChartOfAccountRepository()
 	accountBlockRepo := repositories.NewAccountBlockRepository()
 	ledgerAccountRepo := repositories.NewLedgerAccountRepository()
+	organizationRepo := repositories.NewOrganizationRepository()
+	userRepo := repositories.NewUserRepository()
 	journalEntry := repositories.NewJournalEntryRepository()
 	walletRepo := repositories.NewWalletRepository()
 	walletTypeRepo := repositories.NewWalletTypeRepository()
@@ -52,7 +54,7 @@ func NewWalletController() *WalletController {
 	transactionQService := services.NewTransactionQService()
 
 	coaService := services.NewCoaService(coaRepo)
-	walletService := services.NewAccountService(coaService, accountBlockRepo, ledgerAccountRepo, journalEntry, walletRepo, walletTypeRepo)
+	walletService := services.NewAccountService(coaService, accountBlockRepo, ledgerAccountRepo, journalEntry, walletRepo, walletTypeRepo, *organizationRepo, *userRepo)
 	transactionService := services.NewTransactionService(transactionRepo, journalEntry, accountBlockRepo, ledgerAccountRepo, blockMetumRepo, transactionQService, walletService)
 
 	return &WalletController{
@@ -63,23 +65,24 @@ func NewWalletController() *WalletController {
 }
 
 func (walletController *WalletController) CreateWallet(c *gin.Context) {
-	var payload CreateWalletPayload
+	// var payload CreateWalletPayload
+	var payload types.CreateWalletDto
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, "Invalid payload!!!")
 		return
 	}
 
-	r := walletController.walletService.CreateWallet(payload.OwnerId, payload.WalletType)
+	wallet, err := walletController.walletService.CreateWallet(payload)
 
-	// if err != nil {
-	// 	httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, err.Error())
-	// 	return
-	// }
+	if err != nil {
+		httpUtil.ErrorResponseWithMessage(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	httpUtil.SuccessResponseWithData(c, http.StatusCreated, WalletDto{
-		Accounts:   r.GetAccounts(),
-		WalletType: r.GetWalletType(),
+		Accounts:   wallet.GetAccounts(),
+		WalletType: wallet.GetWalletType(),
 	})
 }
 

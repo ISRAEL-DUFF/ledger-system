@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users(
     updated_at TIMESTAMP NULL DEFAULT NULL,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     email_address VARCHAR(255) NOT NULL UNIQUE,
-    full_name VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
     password TEXT NOT NULL,
     phone_number VARCHAR(20) NULL UNIQUE,
     PRIMARY KEY (id)
@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS wallet(
     account_number VARCHAR(50) NOT NULL,
     ledger_accounts JSON NOT NULL,
     owner_id UUID NOT NULL,
+    organization_id UUID NOT NULL,
     PRIMARY KEY (id)
 );
 

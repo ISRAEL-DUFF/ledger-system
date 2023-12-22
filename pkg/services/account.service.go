@@ -19,7 +19,7 @@ type IAccountService interface {
 	InitializeNewBlock(accountNumber string, dbQueryTx types.IDBTransaction) *types.AccountRepresentation
 	ExtractTransactionEntries(input types.PostTransactionInput, entryList [][]types.TransactionInputEntry) ([][]types.TransactionInputEntry, error)
 	CreateWalletType(ownerId string, name string) (*model.WalletType, error)
-	CreateWallet(ownerId string, walletTypeId string) *Wallet
+	CreateWallet(dto types.CreateWalletDto) (*Wallet, error)
 	ListWalletTypes(ownerId string) ([]*model.WalletType, error)
 	GetWalletByAccountNumber(accountNumber string) (*Wallet, error)
 	ListUserWallets(ownerId string) ([]*Wallet, error)
@@ -34,6 +34,8 @@ type AccountService struct {
 	journalEntryRepo      repositories.IJournalEntryRepository
 	walletRepo            repositories.IWalletRepository
 	walletTypeRepo        repositories.IWalletTypeRepository
+	organizationRepo      repositories.OrganizationRepository
+	userRepo              repositories.UserRepository
 }
 
 type Wallet struct {
@@ -62,6 +64,8 @@ func NewAccountService(chartOfAccountService ICoaService,
 	journalEntry repositories.IJournalEntryRepository,
 	walletRepo repositories.IWalletRepository,
 	walletTypeRepo repositories.IWalletTypeRepository,
+	organizationRepo repositories.OrganizationRepository,
+	userRepo repositories.UserRepository,
 ) *AccountService {
 	return &AccountService{
 		chartOfAccountService: chartOfAccountService,
@@ -70,6 +74,8 @@ func NewAccountService(chartOfAccountService ICoaService,
 		journalEntryRepo:      journalEntry,
 		walletRepo:            walletRepo,
 		walletTypeRepo:        walletTypeRepo,
+		userRepo:              userRepo,
+		organizationRepo:      organizationRepo,
 	}
 }
 
@@ -135,8 +141,66 @@ func (accountService *AccountService) CreateLedgerAccount(name string, ownerId s
 	return accountNumber, nil
 }
 
-func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId string) *Wallet {
-	walletType := accountService.walletTypeRepo.GetWalletRulesByTypeId(walletTypeId)
+func (accountService *AccountService) CreateWallet(dto types.CreateWalletDto) (*Wallet, error) {
+	if dto.OrganizationID == "" {
+		return nil, errors.New("organization id is required!!!")
+	}
+
+	if dto.Name == "" {
+		return nil, errors.New("wallet name is required!!!")
+	}
+
+	if dto.WalletTypeID == "" {
+		return nil, errors.New("wallet type id is required!!!")
+	}
+
+	organization, err := accountService.organizationRepo.FindById(dto.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	var user *model.User
+
+	if dto.OwnerID != "" {
+		user, err = accountService.userRepo.FindByID(dto.OwnerID)
+
+		if err != nil {
+			return nil, err
+		}
+	} else if dto.EmailAddress != "" {
+		user, err = accountService.userRepo.FindByEmail(dto.EmailAddress)
+
+		if err != nil {
+			user, err = accountService.userRepo.Create(types.CreateUser{
+				EmailAddress: dto.EmailAddress,
+				FullName:     dto.Name,
+				PhoneNumber:  dto.PhoneNumber,
+				Password:     "Password",
+			})
+
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else if dto.PhoneNumber != "" {
+		user, err = accountService.userRepo.FindByPhoneNumber(dto.PhoneNumber)
+
+		if err != nil {
+			user, err = accountService.userRepo.Create(types.CreateUser{
+				FullName:    dto.Name,
+				PhoneNumber: dto.PhoneNumber,
+				Password:    "Password",
+			})
+
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		return nil, errors.New("invalid wallet owner detail!!!")
+	}
+
+	walletType := accountService.walletTypeRepo.GetWalletRulesByTypeId(dto.WalletTypeID)
 
 	accountIdGenerator := utils.NewAccountIdGenerator(8)
 	accountId, err := accountIdGenerator()
@@ -148,7 +212,7 @@ func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId 
 	accountIndex := 1
 
 	// fmt.Sprintf("A%s", fmt.Sprint(accountIndex))
-	acctNumber, _ := accountService.CreateLedgerAccount(fmt.Sprintf("A%s-%s", fmt.Sprint(accountIndex), accountId), ownerId, func(claoi *CreateLedgerAccountOptionInput) {
+	acctNumber, _ := accountService.CreateLedgerAccount(fmt.Sprintf("A%s-%s", fmt.Sprint(accountIndex), accountId), user.ID, func(claoi *CreateLedgerAccountOptionInput) {
 		claoi.LedgerAccountInput.Label = fmt.Sprintf("A%s", fmt.Sprint(accountIndex))
 	})
 
@@ -163,9 +227,10 @@ func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId 
 		LedgerAccounts: []string{
 			acctNumber,
 		},
-		Name:       acctNumber,
-		OwnerId:    ownerId,
-		WalletType: walletTypeId,
+		Name:           dto.Name,
+		OwnerId:        user.ID,
+		WalletType:     dto.WalletTypeID,
+		OrganizationID: organization.ID,
 	})
 
 	if wErr != nil {
@@ -178,12 +243,12 @@ func (accountService *AccountService) CreateWallet(ownerId string, walletTypeId 
 		},
 		walletType: WalletTypeStructure{
 			Name:   walletType.Name,
-			ID:     walletTypeId,
+			ID:     dto.WalletTypeID,
 			Events: walletType.Rules,
 		},
 	}
 
-	return wallet
+	return wallet, nil
 }
 
 func (accountService *AccountService) GetWalletByAccountNumber(accountNumber string) (*Wallet, error) {
